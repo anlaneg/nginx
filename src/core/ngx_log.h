@@ -247,13 +247,14 @@ char *ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head);
  * read only buffer as destination and CharToOemBuff() is not needed
  * for ngx_write_stderr() anyway.
  */
+//向stderr描述符中写入字符串
 static ngx_inline void
 ngx_write_stderr(char *text)
 {
     (void) ngx_write_fd(ngx_stderr, text, ngx_strlen(text));
 }
 
-
+//向stdout描述符中写入字符串
 static ngx_inline void
 ngx_write_stdout(char *text)
 {

@@ -47,7 +47,9 @@ struct ngx_pool_large_s {
 
 
 typedef struct {
+	//指向可分配的内存位置
     u_char               *last;
+    //指向内存结尾
     u_char               *end;
     ngx_pool_t           *next;
     ngx_uint_t            failed;
@@ -56,6 +58,7 @@ typedef struct {
 
 struct ngx_pool_s {
     ngx_pool_data_t       d;
+    //区分large,small分配方式
     size_t                max;
     ngx_pool_t           *current;
     ngx_chain_t          *chain;

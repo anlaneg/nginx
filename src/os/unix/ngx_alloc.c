@@ -13,7 +13,7 @@ ngx_uint_t  ngx_pagesize;
 ngx_uint_t  ngx_pagesize_shift;
 ngx_uint_t  ngx_cacheline_size;
 
-
+//采用malloc申请内存，size字节，失败返回NULL
 void *
 ngx_alloc(size_t size, ngx_log_t *log)
 {
@@ -31,6 +31,7 @@ ngx_alloc(size_t size, ngx_log_t *log)
 }
 
 
+//申请内存，并置为0
 void *
 ngx_calloc(size_t size, ngx_log_t *log)
 {
@@ -48,6 +49,7 @@ ngx_calloc(size_t size, ngx_log_t *log)
 
 #if (NGX_HAVE_POSIX_MEMALIGN)
 
+//采用posix_memalign实现内存对齐申请
 void *
 ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
 {
@@ -70,6 +72,7 @@ ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
 
 #elif (NGX_HAVE_MEMALIGN)
 
+//采用memalign实现内存对齐申请
 void *
 ngx_memalign(size_t alignment, size_t size, ngx_log_t *log)
 {

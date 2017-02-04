@@ -171,11 +171,14 @@ ngx_module_t  ngx_core_module = {
     NGX_MODULE_V1_PADDING
 };
 
-
+//标记需要显示帮助
 static ngx_uint_t   ngx_show_help;
+//标记需要显示版本
 static ngx_uint_t   ngx_show_version;
+//标记需要显示build配置
 static ngx_uint_t   ngx_show_configure;
 static u_char      *ngx_prefix;
+//指明配置文件
 static u_char      *ngx_conf_file;
 static u_char      *ngx_conf_params;
 static char        *ngx_signal;
@@ -196,14 +199,17 @@ main(int argc, char *const *argv)
 
     ngx_debug_init();
 
+    //生成全局的string error信息表
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
     }
 
+    //解析参数
     if (ngx_get_options(argc, argv) != NGX_OK) {
         return 1;
     }
 
+    //显示版本
     if (ngx_show_version) {
         ngx_show_version_info();
 
@@ -222,6 +228,7 @@ main(int argc, char *const *argv)
 
     ngx_pid = ngx_getpid();
 
+    //日志文件初始化
     log = ngx_log_init(ngx_prefix);
     if (log == NULL) {
         return 1;
@@ -377,6 +384,7 @@ ngx_show_version_info(void)
 {
     ngx_write_stderr("nginx version: " NGINX_VER_BUILD NGX_LINEFEED);
 
+    //显示帮助信息
     if (ngx_show_help) {
         ngx_write_stderr(
             "Usage: nginx [-?hvVtTq] [-s signal] [-c filename] "
@@ -410,6 +418,7 @@ ngx_show_version_info(void)
     if (ngx_show_configure) {
 
 #ifdef NGX_COMPILER
+    	//显示编译
         ngx_write_stderr("built by " NGX_COMPILER NGX_LINEFEED);
 #endif
 
@@ -723,7 +732,7 @@ ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv)
     return pid;
 }
 
-
+//解析参数
 static ngx_int_t
 ngx_get_options(int argc, char *const *argv)
 {
@@ -734,6 +743,7 @@ ngx_get_options(int argc, char *const *argv)
 
         p = (u_char *) argv[i];
 
+        //如果不是选项，报错
         if (*p++ != '-') {
             ngx_log_stderr(0, "invalid option: \"%s\"", argv[i]);
             return NGX_ERROR;
@@ -772,11 +782,12 @@ ngx_get_options(int argc, char *const *argv)
                 break;
 
             case 'p':
+            	//取-pxxxx后的xxxx参数
                 if (*p) {
                     ngx_prefix = p;
                     goto next;
                 }
-
+                //取-p xxxx 后的xxxx参数
                 if (argv[++i]) {
                     ngx_prefix = (u_char *) argv[i];
                     goto next;
@@ -786,11 +797,13 @@ ngx_get_options(int argc, char *const *argv)
                 return NGX_ERROR;
 
             case 'c':
+            	//-cxxxx 形式
                 if (*p) {
                     ngx_conf_file = p;
                     goto next;
                 }
 
+                //-c xxxx 形式
                 if (argv[++i]) {
                     ngx_conf_file = (u_char *) argv[i];
                     goto next;
@@ -800,11 +813,12 @@ ngx_get_options(int argc, char *const *argv)
                 return NGX_ERROR;
 
             case 'g':
+            	//-gxxx 形式
                 if (*p) {
                     ngx_conf_params = p;
                     goto next;
                 }
-
+                //-g xxxx 形式
                 if (argv[++i]) {
                     ngx_conf_params = (u_char *) argv[i];
                     goto next;
@@ -814,6 +828,7 @@ ngx_get_options(int argc, char *const *argv)
                 return NGX_ERROR;
 
             case 's':
+            	//-sxxx 或者-s xxxx 处理
                 if (*p) {
                     ngx_signal = (char *) p;
 

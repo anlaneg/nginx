@@ -14,17 +14,19 @@ static ngx_inline void *ngx_palloc_small(ngx_pool_t *pool, size_t size,
 static void *ngx_palloc_block(ngx_pool_t *pool, size_t size);
 static void *ngx_palloc_large(ngx_pool_t *pool, size_t size);
 
-
+//创建内存池
 ngx_pool_t *
 ngx_create_pool(size_t size, ngx_log_t *log)
 {
     ngx_pool_t  *p;
 
+    //创建指定大小的pool,先申请长度，这里需要有一个assert,确保size > sizeof(ngx_pool_t)
     p = ngx_memalign(NGX_POOL_ALIGNMENT, size, log);
     if (p == NULL) {
         return NULL;
     }
 
+    //last指向一个ngx_pool_t偏移后
     p->d.last = (u_char *) p + sizeof(ngx_pool_t);
     p->d.end = (u_char *) p + size;
     p->d.next = NULL;
@@ -118,7 +120,7 @@ ngx_reset_pool(ngx_pool_t *pool)
     pool->large = NULL;
 }
 
-
+//如果size过大，采用large分配方式，否则采用small分配方式
 void *
 ngx_palloc(ngx_pool_t *pool, size_t size)
 {
@@ -160,16 +162,19 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
             m = ngx_align_ptr(m, NGX_ALIGNMENT);
         }
 
+        //检查这一块是否可以分配
         if ((size_t) (p->d.end - m) >= size) {
             p->d.last = m + size;
 
             return m;
         }
 
+        //不可以分配，换下一块
         p = p->d.next;
 
     } while (p);
 
+    //当前已申请的均无法分配
     return ngx_palloc_block(pool, size);
 }
 
@@ -299,6 +304,7 @@ ngx_pcalloc(ngx_pool_t *pool, size_t size)
 {
     void *p;
 
+    //自pool中申请一块内存，并将其memset为0
     p = ngx_palloc(pool, size);
     if (p) {
         ngx_memzero(p, size);

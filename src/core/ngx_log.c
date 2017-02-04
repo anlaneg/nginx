@@ -342,6 +342,7 @@ ngx_log_init(u_char *prefix)
 #if (NGX_WIN32)
     if (name[1] != ':') {
 #else
+    //名称不是以'/'开头的。
     if (name[0] != '/') {
 #endif
 
@@ -358,27 +359,33 @@ ngx_log_init(u_char *prefix)
         }
 
         if (plen) {
-            name = malloc(plen + nlen + 2);
+            //加2的原因是，可能前缀没有‘／’，另外需要补个'\0'
+        	name = malloc(plen + nlen + 2);
             if (name == NULL) {
                 return NULL;
             }
 
+            //填充入前缀
             p = ngx_cpymem(name, prefix, plen);
 
+            //前缀是否包含'/'
             if (!ngx_path_separator(*(p - 1))) {
                 *p++ = '/';
             }
 
+            //填充日志路径（不含前缀）
             ngx_cpystrn(p, (u_char *) NGX_ERROR_LOG_PATH, nlen + 1);
 
             p = name;
         }
     }
 
+    //打开文件 $name
     ngx_log_file.fd = ngx_open_file(name, NGX_FILE_APPEND,
                                     NGX_FILE_CREATE_OR_OPEN,
                                     NGX_FILE_DEFAULT_ACCESS);
 
+    //打开文件失败处理
     if (ngx_log_file.fd == NGX_INVALID_FILE) {
         ngx_log_stderr(ngx_errno,
                        "[alert] could not open error log file: "
@@ -564,6 +571,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 
     } else {
 
+    	//申请一个ngx_log_t
         new_log = ngx_pcalloc(cf->pool, sizeof(ngx_log_t));
         if (new_log == NULL) {
             return NGX_CONF_ERROR;
@@ -576,6 +584,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 
     value = cf->args->elts;
 
+    //stderr处理
     if (ngx_strcmp(value[1].data, "stderr") == 0) {
         ngx_str_null(&name);
         cf->cycle->log_use_stderr = 1;
@@ -586,7 +595,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
         }
 
     } else if (ngx_strncmp(value[1].data, "memory:", 7) == 0) {
-
+    	//memory方式处理
 #if (NGX_DEBUG)
         size_t                 size, needed;
         ngx_pool_cleanup_t    *cln;
@@ -645,7 +654,8 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 #endif
 
     } else if (ngx_strncmp(value[1].data, "syslog:", 7) == 0) {
-        peer = ngx_pcalloc(cf->pool, sizeof(ngx_syslog_peer_t));
+        //syslog处理
+    	peer = ngx_pcalloc(cf->pool, sizeof(ngx_syslog_peer_t));
         if (peer == NULL) {
             return NGX_CONF_ERROR;
         }
@@ -658,7 +668,8 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
         new_log->wdata = peer;
 
     } else {
-        new_log->file = ngx_conf_open_file(cf->cycle, &value[1]);
+        //普通文件方式
+    	new_log->file = ngx_conf_open_file(cf->cycle, &value[1]);
         if (new_log->file == NULL) {
             return NGX_CONF_ERROR;
         }

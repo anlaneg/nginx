@@ -12,10 +12,10 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+//一种不能'\0'结束的string实现
 typedef struct {
-    size_t      len;
-    u_char     *data;
+    size_t      len;//字符串长度
+    u_char     *data;//字符串，非'\0'结尾
 } ngx_str_t;
 
 

@@ -141,6 +141,7 @@ ssize_t ngx_write_chain_to_file(ngx_file_t *file, ngx_chain_t *ce,
  * because glibc 2.3 sets warn_unused_result attribute for write()
  * and in this case gcc 4.3 ignores (void) cast
  */
+//包装write函数，如作者所言为了防止gcc拒绝(void)强制忽略。
 static ngx_inline ssize_t
 ngx_write_fd(ngx_fd_t fd, void *buf, size_t n)
 {

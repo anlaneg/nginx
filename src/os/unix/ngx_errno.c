@@ -24,11 +24,12 @@
  *    causing false bug reports.
  */
 
-
+//保存全局的errno对应的string
 static ngx_str_t  *ngx_sys_errlist;
 static ngx_str_t   ngx_unknown_error = ngx_string("Unknown error");
 
 
+//约等同于strerror
 u_char *
 ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
 {
@@ -41,7 +42,7 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
     return ngx_cpymem(errstr, msg->data, size);
 }
 
-
+//初始化ngx的string error
 ngx_int_t
 ngx_strerror_init(void)
 {
@@ -71,6 +72,7 @@ ngx_strerror_init(void)
             goto failed;
         }
 
+        //将错误信息填充进p中
         ngx_memcpy(p, msg, len);
         ngx_sys_errlist[err].len = len;
         ngx_sys_errlist[err].data = p;

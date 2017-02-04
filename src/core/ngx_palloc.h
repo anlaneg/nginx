@@ -51,12 +51,14 @@ typedef struct {
     u_char               *last;
     //指向内存结尾
     u_char               *end;
+    //指向下一个可用块
     ngx_pool_t           *next;
     ngx_uint_t            failed;
 } ngx_pool_data_t;
 
 
 struct ngx_pool_s {
+	//数据块
     ngx_pool_data_t       d;
     //区分large,small分配方式
     size_t                max;

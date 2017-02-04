@@ -120,7 +120,7 @@ ngx_reset_pool(ngx_pool_t *pool)
     pool->large = NULL;
 }
 
-//如果size过大，采用large分配方式，否则采用small分配方式
+//如果size过大，采用large分配方式，否则采用small分配方式（需要对齐）
 void *
 ngx_palloc(ngx_pool_t *pool, size_t size)
 {
@@ -133,7 +133,7 @@ ngx_palloc(ngx_pool_t *pool, size_t size)
     return ngx_palloc_large(pool, size);
 }
 
-
+//自pool中申请size大小，不需要对齐
 void *
 ngx_pnalloc(ngx_pool_t *pool, size_t size)
 {
@@ -164,6 +164,7 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
 
         //检查这一块是否可以分配
         if ((size_t) (p->d.end - m) >= size) {
+        	//移动last指针，分配出size字节
             p->d.last = m + size;
 
             return m;
@@ -186,6 +187,7 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     size_t       psize;
     ngx_pool_t  *p, *new;
 
+    //获取这个pool管理的内存块大小
     psize = (size_t) (pool->d.end - (u_char *) pool);
 
     m = ngx_memalign(NGX_POOL_ALIGNMENT, psize, pool->log);
@@ -199,11 +201,14 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     new->d.next = NULL;
     new->d.failed = 0;
 
+    //向后偏移ngx_pool_data_t大小
     m += sizeof(ngx_pool_data_t);
     m = ngx_align_ptr(m, NGX_ALIGNMENT);
     new->d.last = m + size;
 
     for (p = pool->current; p->d.next; p = p->d.next) {
+    	//通过4来感知是否p指向的节点多次申请失败
+    	//如果是，则移动current指针。
         if (p->d.failed++ > 4) {
             pool->current = p->d.next;
         }
@@ -214,7 +219,7 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     return m;
 }
 
-
+//大块内存，采用malloc申请，挂接为单链表
 static void *
 ngx_palloc_large(ngx_pool_t *pool, size_t size)
 {
@@ -231,21 +236,25 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
 
     for (large = pool->large; large; large = large->next) {
         if (large->alloc == NULL) {
+        	//恰好有个large节点可以记录此内存
             large->alloc = p;
             return p;
         }
 
+        //前3个里没有可记录的。
         if (n++ > 3) {
             break;
         }
     }
 
+    //申请large大小
     large = ngx_palloc_small(pool, sizeof(ngx_pool_large_t), 1);
     if (large == NULL) {
         ngx_free(p);
         return NULL;
     }
 
+    //记录它
     large->alloc = p;
     large->next = pool->large;
     pool->large = large;
@@ -284,6 +293,7 @@ ngx_pfree(ngx_pool_t *pool, void *p)
 {
     ngx_pool_large_t  *l;
 
+    //如果能在large内找到它，则释放，记录信息的位置不释放（l变量）
     for (l = pool->large; l; l = l->next) {
         if (p == l->alloc) {
             ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,

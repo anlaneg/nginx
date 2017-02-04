@@ -74,9 +74,13 @@ struct ngx_cycle_s {
 
     ngx_cycle_t              *old_cycle;
 
+    //配置文件路径
     ngx_str_t                 conf_file;
+    //配置参数，来自于-g命令行
     ngx_str_t                 conf_param;
+    //配置中的前缀信息，有'/'结尾
     ngx_str_t                 conf_prefix;
+    //前缀信息，有'/'结尾，默认与conf_prefix相同
     ngx_str_t                 prefix;
     ngx_str_t                 lock_file;
     ngx_str_t                 hostname;

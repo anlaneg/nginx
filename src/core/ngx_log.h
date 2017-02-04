@@ -48,6 +48,7 @@ typedef void (*ngx_log_writer_pt) (ngx_log_t *log, ngx_uint_t level,
 
 
 struct ngx_log_s {
+	//日志级别，置认为0
     ngx_uint_t           log_level;
     ngx_open_file_t     *file;
 

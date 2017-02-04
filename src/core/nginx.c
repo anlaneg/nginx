@@ -180,6 +180,7 @@ static ngx_uint_t   ngx_show_configure;
 static u_char      *ngx_prefix;
 //指明配置文件
 static u_char      *ngx_conf_file;
+//配置参数，来自-g 命令行
 static u_char      *ngx_conf_params;
 static char        *ngx_signal;
 
@@ -248,11 +249,13 @@ main(int argc, char *const *argv)
     init_cycle.log = log;
     ngx_cycle = &init_cycle;
 
+    //构造一个块大小为1024的pool
     init_cycle.pool = ngx_create_pool(1024, log);
     if (init_cycle.pool == NULL) {
         return 1;
     }
 
+    //备份argc,argv
     if (ngx_save_argv(&init_cycle, argc, argv) != NGX_OK) {
         return 1;
     }
@@ -877,6 +880,7 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
     ngx_argv = (char **) argv;
 
 #else
+    //针对非freebsd,ngx_argv实现了对argv的一个备份。
     size_t     len;
     ngx_int_t  i;
 
@@ -908,7 +912,7 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
     return NGX_OK;
 }
 
-
+//记录配置参数，将其填充进cycle
 static ngx_int_t
 ngx_process_options(ngx_cycle_t *cycle)
 {
@@ -916,15 +920,18 @@ ngx_process_options(ngx_cycle_t *cycle)
     size_t   len;
 
     if (ngx_prefix) {
+    	//前缀长度
         len = ngx_strlen(ngx_prefix);
         p = ngx_prefix;
 
+        //ngx_prefix有赋值，且不以'/'结尾。
         if (len && !ngx_path_separator(p[len - 1])) {
             p = ngx_pnalloc(cycle->pool, len + 1);
             if (p == NULL) {
                 return NGX_ERROR;
             }
 
+            //填充p为前缀，并为其添加'/'
             ngx_memcpy(p, ngx_prefix, len);
             p[len++] = '/';
         }
@@ -937,12 +944,13 @@ ngx_process_options(ngx_cycle_t *cycle)
     } else {
 
 #ifndef NGX_PREFIX
-
+    	//使用当前工作目录来填充前缀
         p = ngx_pnalloc(cycle->pool, NGX_MAX_PATH);
         if (p == NULL) {
             return NGX_ERROR;
         }
 
+        //获取当前工作目录
         if (ngx_getcwd(p, NGX_MAX_PATH) == 0) {
             ngx_log_stderr(ngx_errno, "[emerg]: " ngx_getcwd_n " failed");
             return NGX_ERROR;
@@ -958,7 +966,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         cycle->prefix.data = p;
 
 #else
-
+       //用宏来填充
 #ifdef NGX_CONF_PREFIX
         ngx_str_set(&cycle->conf_prefix, NGX_CONF_PREFIX);
 #else
@@ -981,10 +989,12 @@ ngx_process_options(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+    //逆序遍历配置文件路径
     for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
          p > cycle->conf_file.data;
          p--)
     {
+    	//将配置文件前路径，记录为conf_prefix
         if (ngx_path_separator(*p)) {
             cycle->conf_prefix.len = p - ngx_cycle->conf_file.data + 1;
             cycle->conf_prefix.data = ngx_cycle->conf_file.data;

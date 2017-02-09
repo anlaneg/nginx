@@ -87,7 +87,9 @@ struct ngx_command_s {
 
 
 struct ngx_open_file_s {
+	//文件fd
     ngx_fd_t              fd;
+    //文件路径
     ngx_str_t             name;
 
     void                (*flush)(ngx_open_file_t *file, ngx_log_t *log);

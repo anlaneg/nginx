@@ -14,17 +14,24 @@
 
 
 typedef struct {
+	//数据缓冲区首指针
     void        *elts;
+    //当前有多少个元素
     ngx_uint_t   nelts;
+    //每个元素的大小
     size_t       size;
+    //一共申请了多少个空间
     ngx_uint_t   nalloc;
+    //从哪个池里申请
     ngx_pool_t  *pool;
 } ngx_array_t;
 
 
 ngx_array_t *ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size);
 void ngx_array_destroy(ngx_array_t *a);
+//返回下一个可存储的空间
 void *ngx_array_push(ngx_array_t *a);
+//返回下一个可存储空间（这段空间可存储n个对象）
 void *ngx_array_push_n(ngx_array_t *a, ngx_uint_t n);
 
 

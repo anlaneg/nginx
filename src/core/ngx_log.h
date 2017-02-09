@@ -54,8 +54,10 @@ struct ngx_log_s {
 
     ngx_atomic_uint_t    connection;
 
+    //何时磁盘为满
     time_t               disk_full_time;
 
+    //如果不为NULL,则非debug的级别，将调用此handler
     ngx_log_handler_pt   handler;
     void                *data;
 
@@ -70,6 +72,7 @@ struct ngx_log_s {
 
     char                *action;
 
+    //容许有多个log
     ngx_log_t           *next;
 };
 
@@ -83,6 +86,7 @@ struct ngx_log_s {
 
 #define NGX_HAVE_VARIADIC_MACROS  1
 
+//采用宏方式直接检查level,如果成立，输出
 #define ngx_log_error(level, log, ...)                                        \
     if ((log)->log_level >= level) ngx_log_error_core(level, log, __VA_ARGS__)
 

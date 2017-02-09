@@ -117,12 +117,14 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
     p = ngx_cpymem(errstr, ngx_cached_err_log_time.data,
                    ngx_cached_err_log_time.len);
 
+    //写日志记录
     p = ngx_slprintf(p, last, " [%V] ", &err_levels[level]);
 
     /* pid#tid */
     p = ngx_slprintf(p, last, "%P#" NGX_TID_T_FMT ": ",
                     ngx_log_pid, ngx_log_tid);
 
+    //对应连接
     if (log->connection) {
         p = ngx_slprintf(p, last, "*%uA ", log->connection);
     }
@@ -131,6 +133,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
 #if (NGX_HAVE_VARIADIC_MACROS)
 
+    //格式化消息
     va_start(args, fmt);
     p = ngx_vslprintf(p, last, fmt, args);
     va_end(args);
@@ -141,6 +144,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
 #endif
 
+    //如果有err,则输出errno
     if (err) {
         p = ngx_log_errno(p, last, err);
     }
@@ -180,6 +184,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
             goto next;
         }
 
+        //写log对应的file
         n = ngx_write_fd(log->file->fd, errstr, p - errstr);
 
         if (n == -1 && ngx_errno == NGX_ENOSPC) {
@@ -195,6 +200,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
         log = log->next;
     }
 
+    //如果向stderr写过了，就不用写了
     if (!ngx_use_stderr
         || level > NGX_LOG_WARN
         || wrote_stderr)
@@ -206,6 +212,7 @@ ngx_log_error_core(ngx_uint_t level, ngx_log_t *log, ngx_err_t err,
 
     (void) ngx_sprintf(msg, "nginx: [%V] ", &err_levels[level]);
 
+    //向stderr写
     (void) ngx_write_console(ngx_stderr, msg, p - msg);
 }
 
@@ -239,6 +246,7 @@ ngx_log_debug_core(ngx_log_t *log, ngx_err_t err, const char *fmt, ...)
 #endif
 
 
+//abort消息
 void ngx_cdecl
 ngx_log_abort(ngx_err_t err, const char *fmt, ...)
 {
@@ -254,7 +262,7 @@ ngx_log_abort(ngx_err_t err, const char *fmt, ...)
                   "%*s", p - errstr, errstr);
 }
 
-
+//向stderr写
 void ngx_cdecl
 ngx_log_stderr(ngx_err_t err, const char *fmt, ...)
 {
@@ -283,7 +291,7 @@ ngx_log_stderr(ngx_err_t err, const char *fmt, ...)
     (void) ngx_write_console(ngx_stderr, errstr, p - errstr);
 }
 
-
+//写error number
 u_char *
 ngx_log_errno(u_char *buf, u_char *last, ngx_err_t err)
 {
@@ -376,6 +384,7 @@ ngx_log_init(u_char *prefix)
             //填充日志路径（不含前缀）
             ngx_cpystrn(p, (u_char *) NGX_ERROR_LOG_PATH, nlen + 1);
 
+            //指向组装好的日志名称, $prefix/$NGX_ERROR_LOG_PATH
             p = name;
         }
     }

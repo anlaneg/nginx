@@ -44,7 +44,7 @@ ngx_create_pool(size_t size, ngx_log_t *log)
     return p;
 }
 
-
+//pool销毁
 void
 ngx_destroy_pool(ngx_pool_t *pool)
 {
@@ -52,6 +52,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
     ngx_pool_large_t    *l;
     ngx_pool_cleanup_t  *c;
 
+    //需要用回调进行清理的，先调清理函数
     for (c = pool->cleanup; c; c = c->next) {
         if (c->handler) {
             ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
@@ -82,12 +83,14 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
 #endif
 
+    //这里不释放l,l也在这个pool里,在释放small时可以释放掉
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
             ngx_free(l->alloc);
         }
     }
 
+    //一个pool，一个pool的释放（这是整块内存）
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
         ngx_free(p);
 
@@ -97,7 +100,7 @@ ngx_destroy_pool(ngx_pool_t *pool)
     }
 }
 
-
+//清空pool
 void
 ngx_reset_pool(ngx_pool_t *pool)
 {
@@ -146,7 +149,7 @@ ngx_pnalloc(ngx_pool_t *pool, size_t size)
     return ngx_palloc_large(pool, size);
 }
 
-
+//小块申请
 static ngx_inline void *
 ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
 {
@@ -175,11 +178,11 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
 
     } while (p);
 
-    //当前已申请的均无法分配
+    //当前已申请的均无法分配，分配新块
     return ngx_palloc_block(pool, size);
 }
 
-
+//创建新块，并申请size字节
 static void *
 ngx_palloc_block(ngx_pool_t *pool, size_t size)
 {
@@ -201,20 +204,23 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     new->d.next = NULL;
     new->d.failed = 0;
 
-    //向后偏移ngx_pool_data_t大小
+    //向后偏移ngx_pool_data_t大小（对于非首块，仅偏移一个pool_data大小
     m += sizeof(ngx_pool_data_t);
     m = ngx_align_ptr(m, NGX_ALIGNMENT);
+    //本来new->d.last应等于m,但这里要申请size个字节，故跳过m+size
     new->d.last = m + size;
 
+    //跳到此pool所有失败次数超过４次的块后面。
+    //这个
     for (p = pool->current; p->d.next; p = p->d.next) {
-    	//通过4来感知是否p指向的节点多次申请失败
+    	//通过4来感知是否p指向的节点多次申请失败（最前面的节点失败４次）
     	//如果是，则移动current指针。
         if (p->d.failed++ > 4) {
             pool->current = p->d.next;
         }
     }
 
-    p->d.next = new;
+    p->d.next = new;//加到结尾
 
     return m;
 }
@@ -241,13 +247,13 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
             return p;
         }
 
-        //前3个里没有可记录的。
+        //前3个里没有可记录的。就不查了
         if (n++ > 3) {
             break;
         }
     }
 
-    //申请large大小
+    //没有找到可填充large信息的节点，在当前pool上申请一个small节点，保存large
     large = ngx_palloc_small(pool, sizeof(ngx_pool_large_t), 1);
     if (large == NULL) {
         ngx_free(p);
@@ -262,7 +268,7 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
     return p;
 }
 
-
+//对齐申请size字节，并申请一个ngx_pool_large结构，记录此指针
 void *
 ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment)
 {
@@ -287,7 +293,7 @@ ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment)
     return p;
 }
 
-
+//释放
 ngx_int_t
 ngx_pfree(ngx_pool_t *pool, void *p)
 {
@@ -308,7 +314,7 @@ ngx_pfree(ngx_pool_t *pool, void *p)
     return NGX_DECLINED;
 }
 
-
+//calloc申请
 void *
 ngx_pcalloc(ngx_pool_t *pool, size_t size)
 {
@@ -323,7 +329,7 @@ ngx_pcalloc(ngx_pool_t *pool, size_t size)
     return p;
 }
 
-
+//申请一个size大小的需要cleanup的内存块
 ngx_pool_cleanup_t *
 ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
 {
@@ -344,6 +350,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
         c->data = NULL;
     }
 
+    //加在链头上，将handler置为null
     c->handler = NULL;
     c->next = p->cleanup;
 
@@ -354,7 +361,7 @@ ngx_pool_cleanup_add(ngx_pool_t *p, size_t size)
     return c;
 }
 
-
+//运行cleanup回调为ngx_pool_cleanup_file的所有内存
 void
 ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd)
 {
@@ -375,7 +382,7 @@ ngx_pool_run_cleanup_file(ngx_pool_t *p, ngx_fd_t fd)
     }
 }
 
-
+//关闭对应的文件fd
 void
 ngx_pool_cleanup_file(void *data)
 {
@@ -390,7 +397,7 @@ ngx_pool_cleanup_file(void *data)
     }
 }
 
-
+//删除文件，并关闭fd
 void
 ngx_pool_delete_file(void *data)
 {

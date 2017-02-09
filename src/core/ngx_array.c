@@ -84,6 +84,7 @@ ngx_array_push(ngx_array_t *a)
         }
     }
 
+    //返回下一个元素应占用的空间
     elt = (u_char *) a->elts + a->size * a->nelts;
     a->nelts++;
 

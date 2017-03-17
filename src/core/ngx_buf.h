@@ -23,7 +23,9 @@ struct ngx_buf_s {
     off_t            file_pos;
     off_t            file_last;
 
+    //buf内存的起始位置
     u_char          *start;         /* start of buffer */
+    //buf内存的结束位置
     u_char          *end;           /* end of buffer */
     ngx_buf_tag_t    tag;
     ngx_file_t      *file;
@@ -31,6 +33,7 @@ struct ngx_buf_s {
 
 
     /* the buf's content could be changed */
+    //是否临时的
     unsigned         temporary:1;
 
     /*
@@ -57,13 +60,16 @@ struct ngx_buf_s {
 
 
 struct ngx_chain_s {
+	//此链节点对应的buffer
     ngx_buf_t    *buf;
     ngx_chain_t  *next;
 };
 
 
 typedef struct {
+	//需要多少个
     ngx_int_t    num;
+    //每个多大
     size_t       size;
 } ngx_bufs_t;
 
@@ -144,6 +150,7 @@ ngx_buf_t *ngx_create_temp_buf(ngx_pool_t *pool, size_t size);
 ngx_chain_t *ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs);
 
 
+/*从pool里申请一个ngx_buf_t结构的内存*/
 #define ngx_alloc_buf(pool)  ngx_palloc(pool, sizeof(ngx_buf_t))
 #define ngx_calloc_buf(pool) ngx_pcalloc(pool, sizeof(ngx_buf_t))
 

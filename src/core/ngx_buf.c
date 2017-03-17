@@ -14,6 +14,7 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
 {
     ngx_buf_t *b;
 
+    //申请一个buf
     b = ngx_calloc_buf(pool);
     if (b == NULL) {
         return NULL;
@@ -43,7 +44,7 @@ ngx_create_temp_buf(ngx_pool_t *pool, size_t size)
     return b;
 }
 
-
+//返回pool中首个chain，如果不存在尝试创建，创建失败返回NULL
 ngx_chain_t *
 ngx_alloc_chain_link(ngx_pool_t *pool)
 {
@@ -64,7 +65,7 @@ ngx_alloc_chain_link(ngx_pool_t *pool)
     return cl;
 }
 
-
+//创建bufs->num个buffer,并将它们用链串起来，返回链表头
 ngx_chain_t *
 ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 {
@@ -73,6 +74,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     ngx_buf_t    *b;
     ngx_chain_t  *chain, *cl, **ll;
 
+    //申请内存连续的num个buffer,每个buffer大小为size
     p = ngx_palloc(pool, bufs->num * bufs->size);
     if (p == NULL) {
         return NULL;
@@ -80,6 +82,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
 
     ll = &chain;
 
+    //构造每个bufs
     for (i = 0; i < bufs->num; i++) {
 
         b = ngx_calloc_buf(pool);
@@ -107,6 +110,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
         p += bufs->size;
         b->end = p;
 
+        //创建buffer对应的chain
         cl = ngx_alloc_chain_link(pool);
         if (cl == NULL) {
             return NULL;
@@ -122,7 +126,7 @@ ngx_create_chain_of_bufs(ngx_pool_t *pool, ngx_bufs_t *bufs)
     return chain;
 }
 
-
+//将in中的buffer添加至pool的chain上及传入参数chain上
 ngx_int_t
 ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 {
@@ -130,6 +134,7 @@ ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 
     ll = chain;
 
+    //找到最后一个节点
     for (cl = *chain; cl; cl = cl->next) {
         ll = &cl->next;
     }
@@ -140,23 +145,24 @@ ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
             return NGX_ERROR;
         }
 
-        cl->buf = in->buf;
-        *ll = cl;
-        ll = &cl->next;
-        in = in->next;
+        cl->buf = in->buf;//获得in的buffer
+        *ll = cl;//使chain中最后一个节点指向cl
+        ll = &cl->next;//ll移动到最后一个节点
+        in = in->next;//使in移动
     }
 
-    *ll = NULL;
+    *ll = NULL;//使上一个指向NULL
 
     return NGX_OK;
 }
 
-
+//返回一个空的buf
 ngx_chain_t *
 ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
 {
     ngx_chain_t  *cl;
 
+    //从free中取出一个cl,并将其断开，然后返回
     if (*free) {
         cl = *free;
         *free = cl->next;

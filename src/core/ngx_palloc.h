@@ -70,6 +70,7 @@ struct ngx_pool_s {
     size_t                max;
     //当前可分配的池
     ngx_pool_t           *current;
+    //用于串连chain
     ngx_chain_t          *chain;
     //记录这个池里，申请过的large块
     ngx_pool_large_t     *large;

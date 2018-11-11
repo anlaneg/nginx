@@ -152,11 +152,11 @@ struct ngx_event_aio_s {
     ngx_event_handler_pt       handler;
     ngx_file_t                *file;
 
+    ngx_fd_t                   fd;
+
 #if (NGX_HAVE_AIO_SENDFILE || NGX_COMPAT)
     ssize_t                  (*preload_handler)(ngx_buf_t *file);
 #endif
-
-    ngx_fd_t                   fd;
 
 #if (NGX_HAVE_EVENTFD)
     int64_t                    res;
@@ -499,16 +499,22 @@ extern ngx_module_t           ngx_event_core_module;
 
 
 #define ngx_event_get_conf(conf_ctx, module)                                  \
-             (*(ngx_get_conf(conf_ctx, ngx_events_module))) [module.ctx_index];
+             (*(ngx_get_conf(conf_ctx, ngx_events_module))) [module.ctx_index]
 
 
 
 void ngx_event_accept(ngx_event_t *ev);
 #if !(NGX_WIN32)
 void ngx_event_recvmsg(ngx_event_t *ev);
+void ngx_udp_rbtree_insert_value(ngx_rbtree_node_t *temp,
+    ngx_rbtree_node_t *node, ngx_rbtree_node_t *sentinel);
 #endif
 ngx_int_t ngx_trylock_accept_mutex(ngx_cycle_t *cycle);
+ngx_int_t ngx_enable_accept_events(ngx_cycle_t *cycle);
 u_char *ngx_accept_log_error(ngx_log_t *log, u_char *buf, size_t len);
+#if (NGX_DEBUG)
+void ngx_debug_accepted_connection(ngx_event_conf_t *ecf, ngx_connection_t *c);
+#endif
 
 
 void ngx_process_events_and_timers(ngx_cycle_t *cycle);

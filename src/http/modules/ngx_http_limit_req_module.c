@@ -276,6 +276,8 @@ ngx_http_limit_req_handler(ngx_http_request_t *r)
 
     r->read_event_handler = ngx_http_test_reading;
     r->write_event_handler = ngx_http_limit_req_delay;
+
+    r->connection->write->delayed = 1;
     ngx_add_timer(r->connection->write, delay);
 
     return NGX_AGAIN;
@@ -292,7 +294,7 @@ ngx_http_limit_req_delay(ngx_http_request_t *r)
 
     wev = r->connection->write;
 
-    if (!wev->timedout) {
+    if (wev->delayed) {
 
         if (ngx_handle_write_event(wev, 0) != NGX_OK) {
             ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -300,8 +302,6 @@ ngx_http_limit_req_delay(ngx_http_request_t *r)
 
         return;
     }
-
-    wev->timedout = 0;
 
     if (ngx_handle_read_event(r->connection->read, 0) != NGX_OK) {
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
@@ -399,7 +399,14 @@ ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
 
             ms = (ngx_msec_int_t) (now - lr->last);
 
-            excess = lr->excess - ctx->rate * ngx_abs(ms) / 1000 + 1000;
+            if (ms < -60000) {
+                ms = 1;
+
+            } else if (ms < 0) {
+                ms = 0;
+            }
+
+            excess = lr->excess - ctx->rate * ms / 1000 + 1000;
 
             if (excess < 0) {
                 excess = 0;
@@ -413,7 +420,11 @@ ngx_http_limit_req_lookup(ngx_http_limit_req_limit_t *limit, ngx_uint_t hash,
 
             if (account) {
                 lr->excess = excess;
-                lr->last = now;
+
+                if (ms) {
+                    lr->last = now;
+                }
+
                 return NGX_OK;
             }
 
@@ -509,13 +520,23 @@ ngx_http_limit_req_account(ngx_http_limit_req_limit_t *limits, ngx_uint_t n,
         now = ngx_current_msec;
         ms = (ngx_msec_int_t) (now - lr->last);
 
-        excess = lr->excess - ctx->rate * ngx_abs(ms) / 1000 + 1000;
+        if (ms < -60000) {
+            ms = 1;
+
+        } else if (ms < 0) {
+            ms = 0;
+        }
+
+        excess = lr->excess - ctx->rate * ms / 1000 + 1000;
 
         if (excess < 0) {
             excess = 0;
         }
 
-        lr->last = now;
+        if (ms) {
+            lr->last = now;
+        }
+
         lr->excess = excess;
         lr->count--;
 

@@ -315,7 +315,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
                     return NGX_HTTP_RANGE_NOT_SATISFIABLE;
                 }
 
-                start = start * 10 + *p++ - '0';
+                start = start * 10 + (*p++ - '0');
             }
 
             while (*p == ' ') { p++; }
@@ -345,7 +345,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
                 return NGX_HTTP_RANGE_NOT_SATISFIABLE;
             }
 
-            end = end * 10 + *p++ - '0';
+            end = end * 10 + (*p++ - '0');
         }
 
         while (*p == ' ') { p++; }
@@ -355,7 +355,7 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
         }
 
         if (suffix) {
-            start = content_length - end;
+            start = (end < content_length) ? content_length - end : 0;
             end = content_length - 1;
         }
 
@@ -377,11 +377,18 @@ ngx_http_range_parse(ngx_http_request_t *r, ngx_http_range_filter_ctx_t *ctx,
             range->start = start;
             range->end = end;
 
+            if (size > NGX_MAX_OFF_T_VALUE - (end - start)) {
+                return NGX_HTTP_RANGE_NOT_SATISFIABLE;
+            }
+
             size += end - start;
 
             if (ranges-- == 0) {
                 return NGX_DECLINED;
             }
+
+        } else if (start == 0) {
+            return NGX_DECLINED;
         }
 
         if (*p++ != ',') {
@@ -425,6 +432,8 @@ ngx_http_range_singlepart_header(ngx_http_request_t *r,
     content_range->value.data = ngx_pnalloc(r->pool,
                                     sizeof("bytes -/") - 1 + 3 * NGX_OFF_T_LEN);
     if (content_range->value.data == NULL) {
+        content_range->hash = 0;
+        r->headers_out.content_range = NULL;
         return NGX_ERROR;
     }
 
@@ -454,23 +463,24 @@ static ngx_int_t
 ngx_http_range_multipart_header(ngx_http_request_t *r,
     ngx_http_range_filter_ctx_t *ctx)
 {
-    size_t              len;
+    off_t               len;
+    size_t              size;
     ngx_uint_t          i;
     ngx_http_range_t   *range;
     ngx_atomic_uint_t   boundary;
 
-    len = sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
-          + sizeof(CRLF "Content-Type: ") - 1
-          + r->headers_out.content_type.len
-          + sizeof(CRLF "Content-Range: bytes ") - 1;
+    size = sizeof(CRLF "--") - 1 + NGX_ATOMIC_T_LEN
+           + sizeof(CRLF "Content-Type: ") - 1
+           + r->headers_out.content_type.len
+           + sizeof(CRLF "Content-Range: bytes ") - 1;
 
     if (r->headers_out.content_type_len == r->headers_out.content_type.len
         && r->headers_out.charset.len)
     {
-        len += sizeof("; charset=") - 1 + r->headers_out.charset.len;
+        size += sizeof("; charset=") - 1 + r->headers_out.charset.len;
     }
 
-    ctx->boundary_header.data = ngx_pnalloc(r->pool, len);
+    ctx->boundary_header.data = ngx_pnalloc(r->pool, size);
     if (ctx->boundary_header.data == NULL) {
         return NGX_ERROR;
     }
@@ -560,7 +570,7 @@ ngx_http_range_multipart_header(ngx_http_request_t *r,
                                      - range[i].content_range.data;
 
         len += ctx->boundary_header.len + range[i].content_range.len
-                                    + (size_t) (range[i].end - range[i].start);
+                                             + (range[i].end - range[i].start);
     }
 
     r->headers_out.content_length_n = len;
@@ -594,6 +604,8 @@ ngx_http_range_not_satisfiable(ngx_http_request_t *r)
     content_range->value.data = ngx_pnalloc(r->pool,
                                        sizeof("bytes */") - 1 + NGX_OFF_T_LEN);
     if (content_range->value.data == NULL) {
+        content_range->hash = 0;
+        r->headers_out.content_range = NULL;
         return NGX_ERROR;
     }
 

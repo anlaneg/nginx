@@ -129,6 +129,7 @@ ngx_http_file_cache_init(ngx_shm_zone_t *shm_zone, void *data)
     if (shm_zone->shm.exists) {
         cache->sh = cache->shpool->data;
         cache->bsize = ngx_fs_bsize(cache->path->name.data);
+        cache->max_size /= cache->bsize;
 
         return NGX_OK;
     }
@@ -601,6 +602,8 @@ ngx_http_file_cache_read(ngx_http_request_t *r, ngx_http_cache_t *c)
     c->buf->last += n;
 
     c->valid_sec = h->valid_sec;
+    c->updating_sec = h->updating_sec;
+    c->error_sec = h->error_sec;
     c->last_modified = h->last_modified;
     c->date = h->date;
     c->valid_msec = h->valid_msec;
@@ -632,6 +635,8 @@ ngx_http_file_cache_read(ngx_http_request_t *r, ngx_http_cache_t *c)
     now = ngx_time();
 
     if (c->valid_sec < now) {
+        c->stale_updating = c->valid_sec + c->updating_sec >= now;
+        c->stale_error = c->valid_sec + c->error_sec >= now;
 
         ngx_shmtx_lock(&cache->shpool->mutex);
 
@@ -1252,6 +1257,8 @@ ngx_http_file_cache_set_header(ngx_http_request_t *r, u_char *buf)
 
     h->version = NGX_HTTP_CACHE_VERSION;
     h->valid_sec = c->valid_sec;
+    h->updating_sec = c->updating_sec;
+    h->error_sec = c->error_sec;
     h->last_modified = c->last_modified;
     h->date = c->date;
     h->crc32 = c->crc32;
@@ -1513,6 +1520,8 @@ ngx_http_file_cache_update_header(ngx_http_request_t *r)
 
     h.version = NGX_HTTP_CACHE_VERSION;
     h.valid_sec = c->valid_sec;
+    h.updating_sec = c->updating_sec;
+    h.error_sec = c->error_sec;
     h.last_modified = c->last_modified;
     h.date = c->date;
     h.crc32 = c->crc32;
@@ -1569,7 +1578,7 @@ ngx_http_cache_send(ngx_http_request_t *r)
 
     /* we need to allocate all before the header would be sent */
 
-    b = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    b = ngx_calloc_buf(r->pool);
     if (b == NULL) {
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -1680,7 +1689,7 @@ ngx_http_file_cache_cleanup(void *data)
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->file.log, 0,
                    "http file cache cleanup");
 
-    if (c->updating) {
+    if (c->updating && !c->background) {
         ngx_log_error(NGX_LOG_ALERT, c->file.log, 0,
                       "stalled cache updating, error:%ui", c->error);
     }
@@ -1692,13 +1701,14 @@ ngx_http_file_cache_cleanup(void *data)
 static time_t
 ngx_http_file_cache_forced_expire(ngx_http_file_cache_t *cache)
 {
-    u_char                      *name;
+    u_char                      *name, *p;
     size_t                       len;
     time_t                       wait;
     ngx_uint_t                   tries;
     ngx_path_t                  *path;
-    ngx_queue_t                 *q;
+    ngx_queue_t                 *q, *sentinel;
     ngx_http_file_cache_node_t  *fcn;
+    u_char                       key[2 * NGX_HTTP_CACHE_KEY_LEN];
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                    "http file cache forced expire");
@@ -1715,13 +1725,21 @@ ngx_http_file_cache_forced_expire(ngx_http_file_cache_t *cache)
 
     wait = 10;
     tries = 20;
+    sentinel = NULL;
 
     ngx_shmtx_lock(&cache->shpool->mutex);
 
-    for (q = ngx_queue_last(&cache->sh->queue);
-         q != ngx_queue_sentinel(&cache->sh->queue);
-         q = ngx_queue_prev(q))
-    {
+    for ( ;; ) {
+        if (ngx_queue_empty(&cache->sh->queue)) {
+            break;
+        }
+
+        q = ngx_queue_last(&cache->sh->queue);
+
+        if (q == sentinel) {
+            break;
+        }
+
         fcn = ngx_queue_data(q, ngx_http_file_cache_node_t, queue);
 
         ngx_log_debug6(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
@@ -1732,15 +1750,37 @@ ngx_http_file_cache_forced_expire(ngx_http_file_cache_t *cache)
         if (fcn->count == 0) {
             ngx_http_file_cache_delete(cache, q, name);
             wait = 0;
-
-        } else {
-            if (--tries) {
-                continue;
-            }
-
-            wait = 1;
+            break;
         }
 
+        p = ngx_hex_dump(key, (u_char *) &fcn->node.key,
+                         sizeof(ngx_rbtree_key_t));
+        len = NGX_HTTP_CACHE_KEY_LEN - sizeof(ngx_rbtree_key_t);
+        (void) ngx_hex_dump(p, fcn->key, len);
+
+        /*
+         * abnormally exited workers may leave locked cache entries,
+         * and although it may be safe to remove them completely,
+         * we prefer to just move them to the top of the inactive queue
+         */
+
+        ngx_queue_remove(q);
+        fcn->expire = ngx_time() + cache->inactive;
+        ngx_queue_insert_head(&cache->sh->queue, &fcn->queue);
+
+        ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0,
+                      "ignore long locked inactive cache entry %*s, count:%d",
+                      (size_t) 2 * NGX_HTTP_CACHE_KEY_LEN, key, fcn->count);
+
+        if (sentinel == NULL) {
+            sentinel = q;
+        }
+
+        if (--tries) {
+            continue;
+        }
+
+        wait = 1;
         break;
     }
 
@@ -2378,23 +2418,32 @@ ngx_http_file_cache_set_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
             p = (u_char *) ngx_strchr(name.data, ':');
 
-            if (p) {
-                name.len = p - name.data;
-
-                p++;
-
-                s.len = value[i].data + value[i].len - p;
-                s.data = p;
-
-                size = ngx_parse_size(&s);
-                if (size > 8191) {
-                    continue;
-                }
+            if (p == NULL) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "invalid keys zone size \"%V\"", &value[i]);
+                return NGX_CONF_ERROR;
             }
 
-            ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-                               "invalid keys zone size \"%V\"", &value[i]);
-            return NGX_CONF_ERROR;
+            name.len = p - name.data;
+
+            s.data = p + 1;
+            s.len = value[i].data + value[i].len - s.data;
+
+            size = ngx_parse_size(&s);
+
+            if (size == NGX_ERROR) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "invalid keys zone size \"%V\"", &value[i]);
+                return NGX_CONF_ERROR;
+            }
+
+            if (size < (ssize_t) (2 * ngx_pagesize)) {
+                ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+                                   "keys zone \"%V\" is too small", &value[i]);
+                return NGX_CONF_ERROR;
+            }
+
+            continue;
         }
 
         if (ngx_strncmp(value[i].data, "inactive=", 9) == 0) {
@@ -2580,7 +2629,8 @@ ngx_http_file_cache_valid_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
 
     time_t                    valid;
     ngx_str_t                *value;
-    ngx_uint_t                i, n, status;
+    ngx_int_t                 status;
+    ngx_uint_t                i, n;
     ngx_array_t             **a;
     ngx_http_cache_valid_t   *v;
     static ngx_uint_t         statuses[] = { 200, 301, 302 };
@@ -2628,7 +2678,7 @@ ngx_http_file_cache_valid_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
         } else {
 
             status = ngx_atoi(value[i].data, value[i].len);
-            if (status < 100) {
+            if (status < 100 || status > 599) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "invalid status \"%V\"", &value[i]);
                 return NGX_CONF_ERROR;

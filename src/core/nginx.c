@@ -124,6 +124,13 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, rlimit_core),
       NULL },
 
+    { ngx_string("worker_shutdown_timeout"),
+      NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
+      ngx_conf_set_msec_slot,
+      0,
+      offsetof(ngx_core_conf_t, shutdown_timeout),
+      NULL },
+
     { ngx_string("working_directory"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_conf_set_str_slot,
@@ -228,6 +235,7 @@ main(int argc, char *const *argv)
 #endif
 
     ngx_pid = ngx_getpid();
+    ngx_parent = ngx_getppid();
 
     //日志文件初始化
     log = ngx_log_init(ngx_prefix);
@@ -275,6 +283,12 @@ main(int argc, char *const *argv)
     if (ngx_crc32_table_init() != NGX_OK) {
         return 1;
     }
+
+    /*
+     * ngx_slab_sizes_init() requires ngx_pagesize set in ngx_os_init()
+     */
+
+    ngx_slab_sizes_init();
 
     if (ngx_add_inherited_sockets(&init_cycle) != NGX_OK) {
         return 1;
@@ -996,8 +1010,8 @@ ngx_process_options(ngx_cycle_t *cycle)
     {
     	//将配置文件前路径，记录为conf_prefix
         if (ngx_path_separator(*p)) {
-            cycle->conf_prefix.len = p - ngx_cycle->conf_file.data + 1;
-            cycle->conf_prefix.data = ngx_cycle->conf_file.data;
+            cycle->conf_prefix.len = p - cycle->conf_file.data + 1;
+            cycle->conf_prefix.data = cycle->conf_file.data;
             break;
         }
     }
@@ -1039,6 +1053,7 @@ ngx_core_module_create_conf(ngx_cycle_t *cycle)
     ccf->daemon = NGX_CONF_UNSET;
     ccf->master = NGX_CONF_UNSET;
     ccf->timer_resolution = NGX_CONF_UNSET_MSEC;
+    ccf->shutdown_timeout = NGX_CONF_UNSET_MSEC;
 
     ccf->worker_processes = NGX_CONF_UNSET;
     ccf->debug_points = NGX_CONF_UNSET;
@@ -1067,6 +1082,7 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
     ngx_conf_init_value(ccf->daemon, 1);
     ngx_conf_init_value(ccf->master, 1);
     ngx_conf_init_msec_value(ccf->timer_resolution, 0);
+    ngx_conf_init_msec_value(ccf->shutdown_timeout, 0);
 
     ngx_conf_init_value(ccf->worker_processes, 1);
     ngx_conf_init_value(ccf->debug_points, 0);

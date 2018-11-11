@@ -494,6 +494,8 @@ ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports)
             ls->log.handler = ngx_accept_log_error;
 
             ls->backlog = addr[i].opt.backlog;
+            ls->rcvbuf = addr[i].opt.rcvbuf;
+            ls->sndbuf = addr[i].opt.sndbuf;
 
             ls->wildcard = addr[i].opt.wildcard;
 
@@ -534,10 +536,6 @@ ngx_stream_optimize_servers(ngx_conf_t *cf, ngx_array_t *ports)
                     return NGX_CONF_ERROR;
                 }
                 break;
-            }
-
-            if (ngx_clone_listening(cf, ls) != NGX_OK) {
-                return NGX_CONF_ERROR;
             }
 
             addr++;

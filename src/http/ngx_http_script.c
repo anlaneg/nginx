@@ -220,7 +220,7 @@ ngx_http_set_complex_value_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     cv = (ngx_http_complex_value_t **) (p + cmd->offset);
 
     if (*cv != NULL) {
-        return "duplicate";
+        return "is duplicate";
     }
 
     *cv = ngx_palloc(cf->pool, sizeof(ngx_http_complex_value_t));
@@ -695,7 +695,8 @@ ngx_http_script_add_copy_code(ngx_http_script_compile_t *sc, ngx_str_t *value,
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt) ngx_http_script_copy_len_code;
+    code->code = (ngx_http_script_code_pt) (void *)
+                                                 ngx_http_script_copy_len_code;
     code->len = len;
 
     size = (sizeof(ngx_http_script_copy_code_t) + len + sizeof(uintptr_t) - 1)
@@ -784,7 +785,8 @@ ngx_http_script_add_var_code(ngx_http_script_compile_t *sc, ngx_str_t *name)
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt) ngx_http_script_copy_var_len_code;
+    code->code = (ngx_http_script_code_pt) (void *)
+                                             ngx_http_script_copy_var_len_code;
     code->index = (uintptr_t) index;
 
     code = ngx_http_script_add_code(*sc->values,
@@ -1178,8 +1180,8 @@ ngx_http_script_add_capture_code(ngx_http_script_compile_t *sc, ngx_uint_t n)
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt)
-                      ngx_http_script_copy_capture_len_code;
+    code->code = (ngx_http_script_code_pt) (void *)
+                                         ngx_http_script_copy_capture_len_code;
     code->n = 2 * n;
 
 
@@ -1293,7 +1295,8 @@ ngx_http_script_add_full_name_code(ngx_http_script_compile_t *sc)
         return NGX_ERROR;
     }
 
-    code->code = (ngx_http_script_code_pt) ngx_http_script_full_name_len_code;
+    code->code = (ngx_http_script_code_pt) (void *)
+                                            ngx_http_script_full_name_len_code;
     code->conf_prefix = sc->conf_prefix;
 
     code = ngx_http_script_add_code(*sc->values,
@@ -1513,6 +1516,12 @@ ngx_http_script_file_code(ngx_http_script_engine_t *e)
     if (ngx_open_cached_file(clcf->open_file_cache, &path, &of, r->pool)
         != NGX_OK)
     {
+        if (of.err == 0) {
+            e->ip = ngx_http_script_exit;
+            e->status = NGX_HTTP_INTERNAL_SERVER_ERROR;
+            return;
+        }
+
         if (of.err != NGX_ENOENT
             && of.err != NGX_ENOTDIR
             && of.err != NGX_ENAMETOOLONG)

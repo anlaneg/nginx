@@ -178,6 +178,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         /* open configuration file */
 
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
+
         if (fd == NGX_INVALID_FILE) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
                                ngx_open_file_n " \"%s\" failed",
@@ -655,12 +656,13 @@ ngx_conf_read_token(ngx_conf_t *cf)
         }
 
         if (last_space) {
-            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
-                continue;
-            }
 
             start = b->pos - 1;
             start_line = cf->conf_file->line;
+
+            if (ch == ' ' || ch == '\t' || ch == CR || ch == LF) {
+                continue;
+            }
 
             switch (ch) {
 
@@ -705,6 +707,11 @@ ngx_conf_read_token(ngx_conf_t *cf)
             case '\'':
                 start++;
                 s_quoted = 1;
+                last_space = 0;
+                continue;
+
+            case '$':
+                variable = 1;
                 last_space = 0;
                 continue;
 

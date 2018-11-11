@@ -31,6 +31,7 @@ struct ngx_shm_zone_s {
     ngx_shm_t                 shm;
     ngx_shm_zone_init_pt      init;
     void                     *tag;
+    void                     *sync;
     ngx_uint_t                noreuse;  /* unsigned  noreuse:1; */
 };
 
@@ -92,6 +93,7 @@ typedef struct {
     ngx_flag_t                master;
 
     ngx_msec_t                timer_resolution;
+    ngx_msec_t                shutdown_timeout;
 
     ngx_int_t                 worker_processes;//工作进程数
     ngx_int_t                 debug_points;
@@ -117,6 +119,8 @@ typedef struct {
 
     ngx_array_t               env;
     char                    **environment;
+
+    ngx_uint_t                transparent;  /* unsigned  transparent:1; */
 } ngx_core_conf_t;
 
 
@@ -133,6 +137,7 @@ ngx_pid_t ngx_exec_new_binary(ngx_cycle_t *cycle, char *const *argv);
 ngx_cpuset_t *ngx_get_cpu_affinity(ngx_uint_t n);
 ngx_shm_zone_t *ngx_shared_memory_add(ngx_conf_t *cf, ngx_str_t *name,
     size_t size, void *tag);
+void ngx_set_shutdown_timer(ngx_cycle_t *cycle);
 
 
 extern volatile ngx_cycle_t  *ngx_cycle;

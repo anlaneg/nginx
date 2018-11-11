@@ -93,7 +93,7 @@ typedef struct {
 
     ngx_msec_t                timer_resolution;
 
-    ngx_int_t                 worker_processes;
+    ngx_int_t                 worker_processes;//工作进程数
     ngx_int_t                 debug_points;
 
     ngx_int_t                 rlimit_nofile;

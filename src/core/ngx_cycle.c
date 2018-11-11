@@ -23,7 +23,9 @@ ngx_array_t            ngx_old_cycles;
 static ngx_pool_t     *ngx_temp_pool;
 static ngx_event_t     ngx_cleaner_event;
 
+//需要测试配置
 ngx_uint_t             ngx_test_config;
+//需要dump配置
 ngx_uint_t             ngx_dump_config;
 ngx_uint_t             ngx_quiet_mode;
 
@@ -954,12 +956,14 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDWR,
                             create, NGX_FILE_DEFAULT_ACCESS);
 
+    //打开文件失败
     if (file.fd == NGX_INVALID_FILE) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
                       ngx_open_file_n " \"%s\" failed", file.name.data);
         return NGX_ERROR;
     }
 
+    //
     if (!ngx_test_config) {
         len = ngx_snprintf(pid, NGX_INT64_LEN + 2, "%P%N", ngx_pid) - pid;
 

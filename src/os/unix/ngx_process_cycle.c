@@ -723,6 +723,7 @@ ngx_master_process_exit(ngx_cycle_t *cycle)
 }
 
 
+//生的子进程自此处进入
 static void
 ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 {
@@ -752,6 +753,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
         ngx_process_events_and_timers(cycle);
 
+        //检是进程是否需要terminate
         if (ngx_terminate) {
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "exiting");
 

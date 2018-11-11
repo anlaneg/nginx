@@ -373,6 +373,7 @@ ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t type)
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
+    //创建足够数量的进程
     for (n = 0; n < ccf->worker_processes; n++) {
         if (ngx_spawn_process(cycle, "worker", type) == NGX_INVALID_PID) {
             break;

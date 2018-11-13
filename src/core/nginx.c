@@ -1502,6 +1502,7 @@ ngx_get_cpu_affinity(ngx_uint_t n)
 }
 
 
+//设置系统工作进程数
 static char *
 ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1510,12 +1511,14 @@ ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ccf = (ngx_core_conf_t *) conf;
 
+    //工作进程数已设置
     if (ccf->worker_processes != NGX_CONF_UNSET) {
         return "is duplicate";
     }
 
     value = cf->args->elts;
 
+    //如果为auto,则与cpu数量相同
     if (ngx_strcmp(value[1].data, "auto") == 0) {
         ccf->worker_processes = ngx_ncpu;
         return NGX_CONF_OK;

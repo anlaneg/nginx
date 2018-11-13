@@ -356,6 +356,7 @@ ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
 
     for (i = 0; i < n; i++) {
 
+    	//创建子进程，使自进程进入ngx_worker_process_cycle进行工作
         ngx_spawn_process(cycle, ngx_worker_process_cycle,
                           (void *) (intptr_t) i, "worker process", type);
 
@@ -750,7 +751,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
         ngx_process_events_and_timers(cycle);
 
-        //检是进程是否需要terminate
+        //检查进程是否需要terminate
         if (ngx_terminate) {
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "exiting");
             ngx_worker_process_exit(cycle);

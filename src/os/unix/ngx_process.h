@@ -24,9 +24,9 @@ typedef struct {
     int                 status;
     ngx_socket_t        channel[2];
 
-    ngx_spawn_proc_pt   proc;
-    void               *data;
-    char               *name;
+    ngx_spawn_proc_pt   proc;//work进程工作函数
+    void               *data;//work进程参数
+    char               *name;//work进程名称
 
     unsigned            respawn:1;
     unsigned            just_spawn:1;

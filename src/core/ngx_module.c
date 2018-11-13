@@ -53,6 +53,7 @@ ngx_cycle_modules(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
+    //将ngx_modules加载到cycle->modules
     ngx_memcpy(cycle->modules, ngx_modules,
                ngx_modules_n * sizeof(ngx_module_t *));
 
@@ -161,6 +162,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
     ngx_uint_t          i, m, before;
     ngx_core_module_t  *core_module;
 
+    //module超限检查
     if (cf->cycle->modules_n >= ngx_max_module) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                            "too many modules loaded");
@@ -195,6 +197,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
      */
 
     if (module->index == NGX_MODULE_UNSET_INDEX) {
+    	//module的index未给定值，为其申请一个index
         module->index = ngx_module_index(cf->cycle);
 
         if (module->index >= ngx_max_module) {
@@ -248,6 +251,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
                     (cf->cycle->modules_n - before) * sizeof(ngx_module_t *));
     }
 
+    //加入识别的module
     cf->cycle->modules[before] = module;
     cf->cycle->modules_n++;
 
@@ -268,6 +272,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
                 return NGX_ERROR;
             }
 
+            //将module存放
             cf->cycle->conf_ctx[module->index] = rv;
         }
     }
@@ -275,7 +280,7 @@ ngx_add_module(ngx_conf_t *cf, ngx_str_t *file, ngx_module_t *module,
     return NGX_OK;
 }
 
-
+//查找一个未用的module index
 static ngx_uint_t
 ngx_module_index(ngx_cycle_t *cycle)
 {
@@ -287,18 +292,18 @@ ngx_module_index(ngx_cycle_t *cycle)
 again:
 
     /* find an unused index */
-
+	//找一个未用的module index
     for (i = 0; cycle->modules[i]; i++) {
         module = cycle->modules[i];
 
         if (module->index == index) {
             index++;
-            goto again;
+            goto again;//已使用，继续找
         }
     }
 
     /* check previous cycle */
-
+    //检查之前是否使用过此index,如果用过，则继续查找
     if (cycle->old_cycle && cycle->old_cycle->modules) {
 
         for (i = 0; cycle->old_cycle->modules[i]; i++) {

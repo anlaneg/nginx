@@ -17,6 +17,7 @@ ngx_atomic_t         *ngx_temp_number = &temp_number;
 ngx_atomic_int_t      ngx_random_number = 123456;
 
 
+//获取name路径的绝对路径
 ngx_int_t
 ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
 {
@@ -24,12 +25,14 @@ ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
     u_char     *p, *n;
     ngx_int_t   rc;
 
+    //如果name为绝对路径，则使用绝对路径
     rc = ngx_test_full_name(name);
 
     if (rc == NGX_OK) {
         return rc;
     }
 
+    //非绝对路径，合上prefix，制作绝对路径
     len = prefix->len;
 
 #if (NGX_WIN32)
@@ -54,7 +57,7 @@ ngx_get_full_name(ngx_pool_t *pool, ngx_str_t *prefix, ngx_str_t *name)
     return NGX_OK;
 }
 
-
+//检查所给路径是否为绝对路径
 static ngx_int_t
 ngx_test_full_name(ngx_str_t *name)
 {
@@ -95,6 +98,7 @@ ngx_test_full_name(ngx_str_t *name)
 
 #else
 
+    //以'/'开头的为绝对路径
     if (name->data[0] == '/') {
         return NGX_OK;
     }

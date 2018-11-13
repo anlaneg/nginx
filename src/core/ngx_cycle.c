@@ -29,6 +29,7 @@ static ngx_event_t     ngx_shutdown_event;
 ngx_uint_t             ngx_test_config;
 //需要dump配置
 ngx_uint_t             ngx_dump_config;
+//标记属于quiet模式
 ngx_uint_t             ngx_quiet_mode;
 
 
@@ -188,6 +189,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     ngx_queue_init(&cycle->reusable_connections_queue);
 
 
+    //为每个module申请一个ctx指针
     cycle->conf_ctx = ngx_pcalloc(pool, ngx_max_module * sizeof(void *));
     if (cycle->conf_ctx == NULL) {
         ngx_destroy_pool(pool);
@@ -195,6 +197,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
+    //获取主机名称
     if (gethostname(hostname, NGX_MAXHOSTNAMELEN) == -1) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "gethostname() failed");
         ngx_destroy_pool(pool);
@@ -268,12 +271,14 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     log->log_level = NGX_LOG_DEBUG_ALL;
 #endif
 
+    //配置参数解析（config将override　it)
     if (ngx_conf_param(&conf) != NGX_CONF_OK) {
         environ = senv;
         ngx_destroy_cycle_pools(&conf);
         return NULL;
     }
 
+    //解析配置文件
     if (ngx_conf_parse(&conf, &cycle->conf_file) != NGX_CONF_OK) {
         environ = senv;
         ngx_destroy_cycle_pools(&conf);

@@ -184,11 +184,13 @@ static ngx_uint_t   ngx_show_help;
 static ngx_uint_t   ngx_show_version;
 //标记需要显示build配置
 static ngx_uint_t   ngx_show_configure;
+//指明路径前缀
 static u_char      *ngx_prefix;
 //指明配置文件
 static u_char      *ngx_conf_file;
-//配置参数，来自-g 命令行
+//配置参数，来自-g 命令行（配置文件外生效的全局的指令）
 static u_char      *ngx_conf_params;
+//-s命令行，用于向master进程发送指定信号，完成stop,reload,start等动作
 static char        *ngx_signal;
 
 
@@ -268,6 +270,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    //填充init_cycle中关于程序参数部分
     if (ngx_process_options(&init_cycle) != NGX_OK) {
         return 1;
     }
@@ -308,12 +311,14 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    //配置测试选项处理
     if (ngx_test_config) {
         if (!ngx_quiet_mode) {
             ngx_log_stderr(0, "configuration file %s test is successful",
                            cycle->conf_file.data);
         }
 
+        //配置dump选项处理
         if (ngx_dump_config) {
             cd = cycle->config_dump.elts;
 
@@ -334,6 +339,7 @@ main(int argc, char *const *argv)
         return 0;
     }
 
+    //信号处理
     if (ngx_signal) {
         return ngx_signal_process(cycle, ngx_signal);
     }
@@ -396,6 +402,7 @@ main(int argc, char *const *argv)
 }
 
 
+//显示版本信息
 static void
 ngx_show_version_info(void)
 {
@@ -799,6 +806,7 @@ ngx_get_options(int argc, char *const *argv)
                 break;
 
             case 'p':
+            	//获取路径前缀
             	//取-pxxxx后的xxxx参数
                 if (*p) {
                     ngx_prefix = p;
@@ -814,6 +822,7 @@ ngx_get_options(int argc, char *const *argv)
                 return NGX_ERROR;
 
             case 'c':
+            	//获取配置文件
             	//-cxxxx 形式
                 if (*p) {
                     ngx_conf_file = p;
@@ -857,6 +866,7 @@ ngx_get_options(int argc, char *const *argv)
                     return NGX_ERROR;
                 }
 
+                //当前支持的信号名称检查
                 if (ngx_strcmp(ngx_signal, "stop") == 0
                     || ngx_strcmp(ngx_signal, "quit") == 0
                     || ngx_strcmp(ngx_signal, "reopen") == 0
@@ -870,6 +880,7 @@ ngx_get_options(int argc, char *const *argv)
                 return NGX_ERROR;
 
             default:
+            	//不认识的参数报错
                 ngx_log_stderr(0, "invalid option: \"%c\"", *(p - 1));
                 return NGX_ERROR;
             }
@@ -958,7 +969,7 @@ ngx_process_options(ngx_cycle_t *cycle)
     } else {
 
 #ifndef NGX_PREFIX
-    	//使用当前工作目录来填充前缀
+    	//未指定前缀，且定义NGX_PREFIX宏，则使用当前工作目录来填充前缀
         p = ngx_pnalloc(cycle->pool, NGX_MAX_PATH);
         if (p == NULL) {
             return NGX_ERROR;
@@ -996,14 +1007,16 @@ ngx_process_options(ngx_cycle_t *cycle)
         cycle->conf_file.data = ngx_conf_file;
 
     } else {
+    	//未指定时，使用默认配置文件
         ngx_str_set(&cycle->conf_file, NGX_CONF_PATH);
     }
 
+    //构造并填充cycle->conf_file，置配置文件的绝对路径
     if (ngx_conf_full_name(cycle, &cycle->conf_file, 0) != NGX_OK) {
         return NGX_ERROR;
     }
 
-    //逆序遍历配置文件路径
+    //逆序遍历配置文件路径字符，获取配置文件所在目录路径
     for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
          p > cycle->conf_file.data;
          p--)
@@ -1016,6 +1029,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         }
     }
 
+    //设置配置参数
     if (ngx_conf_params) {
         cycle->conf_param.len = ngx_strlen(ngx_conf_params);
         cycle->conf_param.data = ngx_conf_params;
@@ -1545,6 +1559,7 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    //加载so文件
     handle = ngx_dlopen(file.data);
     if (handle == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -1556,6 +1571,7 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     cln->handler = ngx_unload_module;
     cln->data = handle;
 
+    //取符号ngx_modules
     modules = ngx_dlsym(handle, "ngx_modules");
     if (modules == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -1574,6 +1590,7 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     order = ngx_dlsym(handle, "ngx_module_order");
 
+    //加入modules数组指出的module
     for (i = 0; modules[i]; i++) {
         module = modules[i];
         module->name = names[i];

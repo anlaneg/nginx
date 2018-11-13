@@ -61,7 +61,7 @@ typedef struct {
     open((const char *) name, mode|create|O_BINARY, access)
 
 #else
-
+//打开文件
 #define ngx_open_file(name, mode, create, access)                            \
     open((const char *) name, mode|create, access)
 
@@ -199,6 +199,7 @@ void ngx_close_file_mapping(ngx_file_mapping_t *fm);
 #define ngx_realpath_n           "realpath()"
 #define ngx_getcwd(buf, size)    (getcwd((char *) buf, size) != NULL)
 #define ngx_getcwd_n             "getcwd()"
+//检查字符是否路径分隔符
 #define ngx_path_separator(c)    ((c) == '/')
 
 

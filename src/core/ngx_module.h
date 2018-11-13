@@ -232,6 +232,7 @@ struct ngx_module_s {
     const char           *signature;
 
     void                 *ctx;
+    //模块对应的commands
     ngx_command_t        *commands;
     ngx_uint_t            type;
 

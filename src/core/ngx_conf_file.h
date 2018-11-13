@@ -75,8 +75,10 @@
 
 
 struct ngx_command_s {
+	//命令字
     ngx_str_t             name;
     ngx_uint_t            type;
+    //命令字对应的回调
     char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
     ngx_uint_t            conf;
     ngx_uint_t            offset;

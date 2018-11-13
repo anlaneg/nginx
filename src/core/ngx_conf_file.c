@@ -176,10 +176,11 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
     if (filename) {
 
         /* open configuration file */
-
+    	//打开配置文件
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
 
         if (fd == NGX_INVALID_FILE) {
+        	//配置文件打开失败
             ngx_conf_log_error(NGX_LOG_EMERG, cf, ngx_errno,
                                ngx_open_file_n " \"%s\" failed",
                                filename->data);
@@ -190,6 +191,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
         cf->conf_file = &conf_file;
 
+        //取配置文件对应的stat
         if (ngx_fd_info(fd, &cf->conf_file->file.info) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_EMERG, cf->log, ngx_errno,
                           ngx_fd_info_n " \"%s\" failed", filename->data);
@@ -240,6 +242,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 
 
     for ( ;; ) {
+    	//自文件中读取token，并返回不同的token
         rc = ngx_conf_read_token(cf);
 
         /*
@@ -253,10 +256,12 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
          */
 
         if (rc == NGX_ERROR) {
+        	//出错
             goto done;
         }
 
         if (rc == NGX_CONF_BLOCK_DONE) {
+        	//块结束
 
             if (type != parse_block) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"}\"");
@@ -267,6 +272,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
         if (rc == NGX_CONF_FILE_DONE) {
+        	//文件结束
 
             if (type == parse_block) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -278,6 +284,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
         if (rc == NGX_CONF_BLOCK_START) {
+        	//块开始
 
             if (type == parse_param) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -365,13 +372,16 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
     found = 0;
 
+    //遍历所有modules
     for (i = 0; cf->cycle->modules[i]; i++) {
 
+    	//取此modules对应的commands
         cmd = cf->cycle->modules[i]->commands;
         if (cmd == NULL) {
             continue;
         }
 
+        //遍历所有commands,找与name可匹配的cmd
         for ( /* void */ ; cmd->name.len; cmd++) {
 
             if (name->len != cmd->name.len) {
@@ -382,6 +392,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 continue;
             }
 
+            //匹配成功
             found = 1;
 
             if (cf->cycle->modules[i]->type != NGX_CONF_MODULE
@@ -412,6 +423,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             /* is the directive's argument count right ? */
 
+            //command参数数目检查
             if (!(cmd->type & NGX_CONF_ANY)) {
 
                 if (cmd->type & NGX_CONF_FLAG) {
@@ -446,6 +458,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             conf = NULL;
 
+            //依type获取command填充参数的来源
             if (cmd->type & NGX_DIRECT_CONF) {
                 conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index];
 
@@ -460,6 +473,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 }
             }
 
+            //实现command填充调用
             rv = cmd->set(cf, cmd, conf);
 
             if (rv == NGX_CONF_OK) {
@@ -526,12 +540,14 @@ ngx_conf_read_token(ngx_conf_t *cf)
     start = b->pos;
     start_line = cf->conf_file->line;
 
+    //取文件大小
     file_size = ngx_file_size(&cf->conf_file->file.info);
 
     for ( ;; ) {
 
         if (b->pos >= b->last) {
 
+        	//offset超过文件大小
             if (cf->conf_file->file.offset >= file_size) {
 
                 if (cf->args->nelts > 0 || !last_space) {
@@ -580,12 +596,14 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 ngx_memmove(b->start, start, len);
             }
 
+            //剩余的文件长度
             size = (ssize_t) (file_size - cf->conf_file->file.offset);
 
             if (size > b->end - (b->start + len)) {
                 size = b->end - (b->start + len);
             }
 
+            //读文件offset位置起size字节，填充到b->start + len
             n = ngx_read_file(&cf->conf_file->file, b->start + len, size,
                               cf->conf_file->file.offset);
 
@@ -594,6 +612,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
 
             if (n != size) {
+            	//记取的内容小于要求的size，文件读取有误
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    ngx_read_file_n " returned "
                                    "only %z bytes instead of %z",
@@ -689,6 +708,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
                 return NGX_CONF_BLOCK_DONE;
 
+            //遇到注释符
             case '#':
                 sharp_comment = 1;
                 continue;
@@ -882,7 +902,7 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return rv;
 }
 
-
+//获取配置文件name的绝对路径
 ngx_int_t
 ngx_conf_full_name(ngx_cycle_t *cycle, ngx_str_t *name, ngx_uint_t conf_prefix)
 {

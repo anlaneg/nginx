@@ -16,7 +16,7 @@
 struct ngx_file_s {
     ngx_fd_t                   fd;
     ngx_str_t                  name;
-    ngx_file_info_t            info;
+    ngx_file_info_t            info;//文件stat信息
 
     off_t                      offset;
     off_t                      sys_offset;

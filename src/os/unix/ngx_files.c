@@ -27,6 +27,7 @@ ngx_uint_t  ngx_file_aio = 1;
 #endif
 
 
+//自文件中读取内容（偏移offset,读size字节，内容填充到buf)
 ssize_t
 ngx_read_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset)
 {
@@ -37,6 +38,7 @@ ngx_read_file(ngx_file_t *file, u_char *buf, size_t size, off_t offset)
 
 #if (NGX_HAVE_PREAD)
 
+    //自文件中读取内容（偏移offset,读size字节，内容填充到buf)
     n = pread(file->fd, buf, size, offset);
 
     if (n == -1) {

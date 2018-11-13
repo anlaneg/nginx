@@ -92,15 +92,18 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
     ngx_int_t  s;
 
     if (respawn >= 0) {
+    	//如果指定了下标，则使用此下标
         s = respawn;
 
     } else {
+    	//找一个未占用的下标，用于要记录要创建的进程信息
         for (s = 0; s < ngx_last_process; s++) {
             if (ngx_processes[s].pid == -1) {
                 break;
             }
         }
 
+        //未找到空闲的ngx_processes空间
         if (s == NGX_MAX_PROCESSES) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, 0,
                           "no more than %d processes can be spawned",
@@ -114,7 +117,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
 
         /* Solaris 9 still has no AF_LOCAL */
 
-    	//创建pair
+    	//创建一对pair　socket
         if (socketpair(AF_UNIX, SOCK_STREAM, 0, ngx_processes[s].channel) == -1)
         {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,

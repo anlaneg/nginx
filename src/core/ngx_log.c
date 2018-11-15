@@ -341,7 +341,8 @@ ngx_log_init(u_char *prefix)
     nlen = ngx_strlen(name);
 
     if (nlen == 0) {
-        ngx_log_file.fd = ngx_stderr;
+        //未指定文件名，使用stderr
+    	ngx_log_file.fd = ngx_stderr;
         return &ngx_log;
     }
 
@@ -354,6 +355,7 @@ ngx_log_init(u_char *prefix)
     if (name[0] != '/') {
 #endif
 
+    	//如果指定了前缀，则使用前缀，否则使用默认前缀。
         if (prefix) {
             plen = ngx_strlen(prefix);
 

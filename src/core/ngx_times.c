@@ -28,8 +28,11 @@ static ngx_atomic_t      ngx_time_lock;
 
 volatile ngx_msec_t      ngx_current_msec;
 volatile ngx_time_t     *ngx_cached_time;
+//显示时间，格式year/month/day hour:min:sec
 volatile ngx_str_t       ngx_cached_err_log_time;
+//显示时间，格式 week,day month year hour:min:sec time-zone
 volatile ngx_str_t       ngx_cached_http_time;
+//显示时间，day/mon/year:hour:min:sec +time-zone
 volatile ngx_str_t       ngx_cached_http_log_time;
 volatile ngx_str_t       ngx_cached_http_log_iso8601;
 volatile ngx_str_t       ngx_cached_syslog_time;
@@ -65,7 +68,7 @@ static char  *months[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun",
 void
 ngx_time_init(void)
 {
-	//设置各长度
+	//设置timer各长度
     ngx_cached_err_log_time.len = sizeof("1970/09/28 12:00:00") - 1;
     ngx_cached_http_time.len = sizeof("Mon, 28 Sep 1970 06:00:00 GMT") - 1;
     ngx_cached_http_log_time.len = sizeof("28/Sep/1970:12:00:00 +0600") - 1;
@@ -74,6 +77,7 @@ ngx_time_init(void)
 
     ngx_cached_time = &cached_time[0];
 
+    //设置各time格式对应的当前时间
     ngx_time_update();
 }
 

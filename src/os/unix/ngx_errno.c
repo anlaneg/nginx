@@ -42,7 +42,7 @@ ngx_strerror(ngx_err_t err, u_char *errstr, size_t size)
     return ngx_cpymem(errstr, msg->data, size);
 }
 
-//初始化ngx的string error
+//初始化ngx的string error(错误码的文本形式）
 ngx_int_t
 ngx_strerror_init(void)
 {

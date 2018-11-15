@@ -209,7 +209,7 @@ main(int argc, char *const *argv)
 
     ngx_debug_init();
 
-    //生成全局的string error信息表
+    //生成全局的错误码的文本信息表
     if (ngx_strerror_init() != NGX_OK) {
         return 1;
     }

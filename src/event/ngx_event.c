@@ -41,6 +41,7 @@ sig_atomic_t          ngx_event_timer_alarm;
 static ngx_uint_t     ngx_event_max_module;
 
 ngx_uint_t            ngx_event_flags;
+//记录event的action函数集
 ngx_event_actions_t   ngx_event_actions;
 
 
@@ -190,6 +191,7 @@ ngx_module_t  ngx_event_core_module = {
 };
 
 
+//事件及timer处理
 void
 ngx_process_events_and_timers(ngx_cycle_t *cycle)
 {
@@ -239,6 +241,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     delta = ngx_current_msec;
 
+    //timer事件处理
     (void) ngx_process_events(cycle, timer, flags);
 
     delta = ngx_current_msec - delta;
@@ -246,6 +249,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "timer delta: %M", delta);
 
+    //处理ngx_posted_accept_events事件队列
     ngx_event_process_posted(cycle, &ngx_posted_accept_events);
 
     if (ngx_accept_mutex_held) {
@@ -256,6 +260,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         ngx_event_expire_timers();
     }
 
+    //处理ngx_posted_events事件队列
     ngx_event_process_posted(cycle, &ngx_posted_events);
 }
 
@@ -1285,7 +1290,7 @@ ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf)
 #if (NGX_HAVE_SELECT)
 
     if (module == NULL) {
-        module = &ngx_select_module;
+        module = &ngx_select_module;//使用select_module
     }
 
 #endif
@@ -1309,6 +1314,7 @@ ngx_event_core_init_conf(ngx_cycle_t *cycle, void *conf)
         }
     }
 
+    //未查找到module
     if (module == NULL) {
         ngx_log_error(NGX_LOG_EMERG, cycle->log, 0, "no events module found");
         return NGX_CONF_ERROR;

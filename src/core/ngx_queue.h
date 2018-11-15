@@ -25,7 +25,7 @@ struct ngx_queue_s {
     (q)->prev = q;                                                            \
     (q)->next = q
 
-
+//检查队列是否为空
 #define ngx_queue_empty(h)                                                    \
     (h == (h)->prev)
 
@@ -47,6 +47,7 @@ struct ngx_queue_s {
     (h)->prev = x
 
 
+//自队列取元素
 #define ngx_queue_head(h)                                                     \
     (h)->next
 
@@ -77,6 +78,7 @@ struct ngx_queue_s {
 
 #else
 
+//将x自队列中移除
 #define ngx_queue_remove(x)                                                   \
     (x)->next->prev = (x)->prev;                                              \
     (x)->prev->next = (x)->next

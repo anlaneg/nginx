@@ -10,6 +10,7 @@
 #include <ngx_channel.h>
 
 
+//向channel口发送命令
 ngx_int_t
 ngx_write_channel(ngx_socket_t s, ngx_channel_t *ch, size_t size,
     ngx_log_t *log)
@@ -92,6 +93,7 @@ ngx_write_channel(ngx_socket_t s, ngx_channel_t *ch, size_t size,
 }
 
 
+//自channel口读取命令
 ngx_int_t
 ngx_read_channel(ngx_socket_t s, ngx_channel_t *ch, size_t size, ngx_log_t *log)
 {

@@ -107,14 +107,14 @@ struct ngx_event_s {
     unsigned         available:1;
 #endif
 
-    ngx_event_handler_pt  handler;
+    ngx_event_handler_pt  handler;//事件处理函数
 
 
 #if (NGX_HAVE_IOCP)
     ngx_event_ovlp_t ovlp;
 #endif
 
-    ngx_uint_t       index;
+    ngx_uint_t       index;//事件对应的索引
 
     ngx_log_t       *log;
 
@@ -175,6 +175,7 @@ struct ngx_event_aio_s {
 
 
 typedef struct {
+	//event添加
     ngx_int_t  (*add)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
     ngx_int_t  (*del)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
 
@@ -407,11 +408,13 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define NGX_CLEAR_EVENT    0    /* dummy declaration */
 #endif
 
-
+//event处理函数
 #define ngx_process_events   ngx_event_actions.process_events
 #define ngx_done_events      ngx_event_actions.done
 
+//event添加函数
 #define ngx_add_event        ngx_event_actions.add
+//event删除函数
 #define ngx_del_event        ngx_event_actions.del
 #define ngx_add_conn         ngx_event_actions.add_conn
 #define ngx_del_conn         ngx_event_actions.del_conn

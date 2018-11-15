@@ -128,6 +128,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
+    //启动多个work进程
     ngx_start_worker_processes(cycle, ccf->worker_processes,
                                NGX_PROCESS_RESPAWN);
     ngx_start_cache_manager_processes(cycle, 0);
@@ -342,6 +343,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
 }
 
 
+//启动多个工作进程
 static void
 ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
 {
@@ -519,6 +521,7 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
         }
 
         if (ch.command) {
+        	//向子进程发送命令
             if (ngx_write_channel(ngx_processes[i].channel[0],
                                   &ch, sizeof(ngx_channel_t), cycle->log)
                 == NGX_OK)
@@ -534,6 +537,7 @@ ngx_signal_worker_processes(ngx_cycle_t *cycle, int signo)
         ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
                        "kill (%P, %d)", ngx_processes[i].pid, signo);
 
+        //向子进程发送信号
         if (kill(ngx_processes[i].pid, signo) == -1) {
             err = ngx_errno;
             ngx_log_error(NGX_LOG_ALERT, cycle->log, err,
@@ -749,6 +753,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "worker cycle");
 
+        //事件及timer处理
         ngx_process_events_and_timers(cycle);
 
         //检查进程是否需要terminate

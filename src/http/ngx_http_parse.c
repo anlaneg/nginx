@@ -156,8 +156,9 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
             state = sw_method;
             break;
 
-        case sw_method:
+        case sw_method://解析method字段
             if (ch == ' ') {
+            	//循环直到遇到空格，再向下处理,从而完成method解析
                 r->method_end = p - 1;
                 m = r->request_start;
 
@@ -279,6 +280,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
         /* space* before URI */
         case sw_spaces_before_uri:
 
+        	//解析uri
             if (ch == '/') {
                 r->uri_start = p;
                 state = sw_after_slash_in_uri;

@@ -36,6 +36,7 @@ ngx_int_t        ngx_last_process;
 ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 
 
+//信号处理函数
 ngx_signal_t  signals[] = {
     { ngx_signal_value(NGX_RECONFIGURE_SIGNAL),
       "SIG" ngx_value(NGX_RECONFIGURE_SIGNAL),
@@ -297,6 +298,7 @@ ngx_init_signals(ngx_log_t *log)
     ngx_signal_t      *sig;
     struct sigaction   sa;
 
+    //注册信号处理函数
     for (sig = signals; sig->signo != 0; sig++) {
         ngx_memzero(&sa, sizeof(struct sigaction));
 
@@ -309,6 +311,7 @@ ngx_init_signals(ngx_log_t *log)
         }
 
         sigemptyset(&sa.sa_mask);
+        //设置信号action
         if (sigaction(sig->signo, &sa, NULL) == -1) {
 #if (NGX_VALGRIND)
             ngx_log_error(NGX_LOG_ALERT, log, ngx_errno,
@@ -337,6 +340,7 @@ ngx_signal_handler(int signo, siginfo_t *siginfo, void *ucontext)
 
     err = ngx_errno;
 
+    //找出对应的信号处理结构
     for (sig = signals; sig->signo != 0; sig++) {
         if (sig->signo == signo) {
             break;
@@ -638,6 +642,7 @@ ngx_debug_point(void)
 }
 
 
+//向指定进程pid发送对应name的信号
 ngx_int_t
 ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_pid_t pid)
 {

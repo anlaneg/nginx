@@ -356,6 +356,7 @@ main(int argc, char *const *argv)
 
 #if !(NGX_WIN32)
 
+    //注册信号处理函数
     if (ngx_init_signals(cycle->log) != NGX_OK) {
         return 1;
     }

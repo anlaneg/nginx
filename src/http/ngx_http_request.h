@@ -401,8 +401,8 @@ struct ngx_http_request_s {
     time_t                            start_sec;
     ngx_msec_t                        start_msec;
 
-    ngx_uint_t                        method;
-    ngx_uint_t                        http_version;
+    ngx_uint_t                        method;//解析的method,例如GET,POST
+    ngx_uint_t                        http_version;//版本号
 
     ngx_str_t                         request_line;
     ngx_str_t                         uri;

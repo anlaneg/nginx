@@ -28,6 +28,7 @@
     }
 
 
+//将event自queue中移除
 #define ngx_delete_posted_event(ev)                                           \
                                                                               \
     (ev)->posted = 0;                                                         \

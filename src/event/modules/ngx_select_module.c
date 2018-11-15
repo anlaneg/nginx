@@ -22,13 +22,13 @@ static void ngx_select_repair_fd_sets(ngx_cycle_t *cycle);
 static char *ngx_select_init_conf(ngx_cycle_t *cycle, void *conf);
 
 
-static fd_set         master_read_fd_set;
-static fd_set         master_write_fd_set;
+static fd_set         master_read_fd_set;//记录读fd
+static fd_set         master_write_fd_set;//记录写fd
 static fd_set         work_read_fd_set;
 static fd_set         work_write_fd_set;
 
 static ngx_int_t      max_fd;
-static ngx_uint_t     nevents;
+static ngx_uint_t     nevents;//记录事件数
 
 static ngx_event_t  **event_index;
 
@@ -102,6 +102,7 @@ ngx_select_init(ngx_cycle_t *cycle, ngx_msec_t timer)
 
     ngx_io = ngx_os_io;
 
+    //将event　action设置为selcect的action
     ngx_event_actions = ngx_select_module_ctx.actions;
 
     ngx_event_flags = NGX_USE_LEVEL_EVENT;
@@ -147,9 +148,11 @@ ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     }
 
     if (event == NGX_READ_EVENT) {
+    	//读事件
         FD_SET(c->fd, &master_read_fd_set);
 
     } else if (event == NGX_WRITE_EVENT) {
+    	//写事件
         FD_SET(c->fd, &master_write_fd_set);
     }
 
@@ -159,7 +162,7 @@ ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 
     ev->active = 1;
 
-    event_index[nevents] = ev;
+    event_index[nevents] = ev;//添加event
     ev->index = nevents;
     nevents++;
 
@@ -167,6 +170,7 @@ ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 }
 
 
+//event删除
 static ngx_int_t
 ngx_select_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 {
@@ -184,6 +188,7 @@ ngx_select_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     ngx_log_debug2(NGX_LOG_DEBUG_EVENT, ev->log, 0,
                    "select del event fd:%d ev:%i", c->fd, event);
 
+    //移除读，写事件
     if (event == NGX_READ_EVENT) {
         FD_CLR(c->fd, &master_read_fd_set);
 
@@ -207,6 +212,7 @@ ngx_select_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 }
 
 
+//事件处理函数，负责将event入队
 static ngx_int_t
 ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     ngx_uint_t flags)
@@ -245,6 +251,7 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     }
 #endif
 
+    //设置超时时间
     if (timer == NGX_TIMER_INFINITE) {
         tp = NULL;
 
@@ -257,11 +264,12 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "select timer: %M", timer);
 
-    work_read_fd_set = master_read_fd_set;
-    work_write_fd_set = master_write_fd_set;
+    work_read_fd_set = master_read_fd_set;//需要读的fd
+    work_write_fd_set = master_write_fd_set;//需要写的fd
 
     ready = select(max_fd + 1, &work_read_fd_set, &work_write_fd_set, NULL, tp);
 
+    //获取错误码
     err = (ready == -1) ? ngx_errno : 0;
 
     if (flags & NGX_UPDATE_TIME || ngx_event_timer_alarm) {
@@ -271,6 +279,7 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "select ready %d", ready);
 
+    //错误码处理
     if (err) {
         ngx_uint_t  level;
 
@@ -308,11 +317,13 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
 
     nready = 0;
 
+    //遍历所有event
     for (i = 0; i < nevents; i++) {
         ev = event_index[i];
         c = ev->data;
         found = 0;
 
+        //检查fd是否可写，可读
         if (ev->write) {
             if (FD_ISSET(c->fd, &work_write_fd_set)) {
                 found = 1;
@@ -328,13 +339,14 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
             }
         }
 
+        //将有事件的event入队
         if (found) {
             ev->ready = 1;
 
             queue = ev->accept ? &ngx_posted_accept_events
                                : &ngx_posted_events;
 
-            ngx_post_event(ev, queue);
+            ngx_post_event(ev, queue);//入队
 
             nready++;
         }

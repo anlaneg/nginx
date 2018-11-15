@@ -90,6 +90,8 @@ ngx_strlchr(u_char *p, u_char *last, u_char c)
 //将buf指向的长度为n的内存区域格式化为c
 #define ngx_memset(buf, c, n)     (void) memset(buf, c, n)
 
+void ngx_explicit_memzero(void *buf, size_t n);
+
 
 #if (NGX_MEMCPY_LIMIT)
 

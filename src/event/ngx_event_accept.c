@@ -14,6 +14,7 @@ static ngx_int_t ngx_disable_accept_events(ngx_cycle_t *cycle, ngx_uint_t all);
 static void ngx_close_accepted_connection(ngx_connection_t *c);
 
 
+//tcp报文accept
 void
 ngx_event_accept(ngx_event_t *ev)
 {
@@ -62,6 +63,7 @@ ngx_event_accept(ngx_event_t *ev)
             s = accept(lc->fd, &sa.sockaddr, &socklen);
         }
 #else
+        //按入请求方sa.sockaddr
         s = accept(lc->fd, &sa.sockaddr, &socklen);
 #endif
 
@@ -136,6 +138,7 @@ ngx_event_accept(ngx_event_t *ev)
         ngx_accept_disabled = ngx_cycle->connection_n / 8
                               - ngx_cycle->free_connection_n;
 
+        //构造s对应的connect
         c = ngx_get_connection(s, ev->log);
 
         if (c == NULL) {
@@ -305,6 +308,7 @@ ngx_event_accept(ngx_event_t *ev)
         log->data = NULL;
         log->handler = NULL;
 
+        //调用被监听接口的handler处理此connect(例如：ngx_http_init_connection）
         ls->handler(c);
 
         if (ngx_event_flags & NGX_USE_KQUEUE_EVENT) {

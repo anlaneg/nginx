@@ -1106,13 +1106,16 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
         return NULL;
     }
 
+    //取一个空闲的connect
     c = ngx_cycle->free_connections;
 
     if (c == NULL) {
+    	//无空闲的connect,则先尝试释放，再复用
         ngx_drain_connections((ngx_cycle_t *) ngx_cycle);
         c = ngx_cycle->free_connections;
     }
 
+    //连接完全被用完了
     if (c == NULL) {
         ngx_log_error(NGX_LOG_ALERT, log, 0,
                       "%ui worker_connections are not enough",
@@ -1121,6 +1124,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
         return NULL;
     }
 
+    //占用此connect
     ngx_cycle->free_connections = c->data;
     ngx_cycle->free_connection_n--;
 
@@ -1131,6 +1135,7 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     rev = c->read;
     wev = c->write;
 
+    //清空connect
     ngx_memzero(c, sizeof(ngx_connection_t));
 
     c->read = rev;

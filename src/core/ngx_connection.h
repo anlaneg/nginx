@@ -126,7 +126,7 @@ struct ngx_connection_s {
     ngx_event_t        *read;
     ngx_event_t        *write;
 
-    ngx_socket_t        fd;
+    ngx_socket_t        fd;//连接对应的fd
 
     ngx_recv_pt         recv;
     ngx_send_pt         send;

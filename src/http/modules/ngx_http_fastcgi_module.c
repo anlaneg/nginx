@@ -3492,7 +3492,7 @@ ngx_http_fastcgi_split(ngx_http_request_t *r, ngx_http_fastcgi_loc_conf_t *flcf)
 #endif
 }
 
-
+//解析fastcgi监听的端口号
 static char *
 ngx_http_fastcgi_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -3520,6 +3520,7 @@ ngx_http_fastcgi_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     url = &value[1];
 
+    //取url中变量包含的数目
     n = ngx_http_script_variables_count(url);
 
     if (n) {

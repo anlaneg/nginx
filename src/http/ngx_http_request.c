@@ -202,6 +202,7 @@ ngx_http_header_t  ngx_http_headers_in[] = {
 };
 
 
+//http报文连接初始化
 void
 ngx_http_init_connection(ngx_connection_t *c)
 {
@@ -302,6 +303,7 @@ ngx_http_init_connection(ngx_connection_t *c)
     /* the default server configuration for the address:port */
     hc->conf_ctx = hc->addr_conf->default_server->ctx;
 
+    //创建context
     ctx = ngx_palloc(c->pool, sizeof(ngx_http_log_ctx_t));
     if (ctx == NULL) {
         ngx_http_close_connection(c);
@@ -320,7 +322,9 @@ ngx_http_init_connection(ngx_connection_t *c)
     c->log_error = NGX_ERROR_INFO;
 
     rev = c->read;
+    //读回调，处理http请求
     rev->handler = ngx_http_wait_request_handler;
+    //写回调为空
     c->write->handler = ngx_http_empty_handler;
 
 #if (NGX_HTTP_V2)
@@ -348,6 +352,7 @@ ngx_http_init_connection(ngx_connection_t *c)
         c->log->action = "reading PROXY protocol";
     }
 
+    //如果有数据可读，则直接触发handler
     if (rev->ready) {
         /* the deferred accept(), iocp */
 
@@ -363,13 +368,14 @@ ngx_http_init_connection(ngx_connection_t *c)
     ngx_add_timer(rev, c->listening->post_accept_timeout);
     ngx_reusable_connection(c, 1);
 
+    //加入读事件
     if (ngx_handle_read_event(rev, 0) != NGX_OK) {
         ngx_http_close_connection(c);
         return;
     }
 }
 
-
+//等待处理http请求
 static void
 ngx_http_wait_request_handler(ngx_event_t *rev)
 {
@@ -385,12 +391,14 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, c->log, 0, "http wait request handler");
 
+    //读取超时，销毁connect
     if (rev->timedout) {
         ngx_log_error(NGX_LOG_INFO, c->log, NGX_ETIMEDOUT, "client timed out");
         ngx_http_close_connection(c);
         return;
     }
 
+    //连接已关闭
     if (c->close) {
         ngx_http_close_connection(c);
         return;
@@ -425,6 +433,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         b->end = b->last + size;
     }
 
+    //接受http数据
     n = c->recv(c, b->last, size);
 
     if (n == NGX_AGAIN) {
@@ -462,6 +471,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
+    //数据读取成功，增加last值
     b->last += n;
 
     if (hc->proxy_protocol) {
@@ -495,6 +505,7 @@ ngx_http_wait_request_handler(ngx_event_t *rev)
         return;
     }
 
+    //处理http请求行
     rev->handler = ngx_http_process_request_line;
     ngx_http_process_request_line(rev);
 }
@@ -967,6 +978,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
             }
         }
 
+        //解析请求行
         rc = ngx_http_parse_request_line(r, r->header_in);
 
         if (rc == NGX_OK) {
@@ -987,6 +999,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->http_protocol.len = r->request_end - r->http_protocol.data;
             }
 
+            //请求行解析成功，处理url
             if (ngx_http_process_request_uri(r) != NGX_OK) {
                 break;
             }
@@ -1936,6 +1949,7 @@ ngx_http_process_request(ngx_http_request_t *r)
 
 #endif
 
+    //删除read timer
     if (c->read->timer_set) {
         ngx_del_timer(c->read);
     }

@@ -43,7 +43,7 @@ ngx_array_destroy(ngx_array_t *a)
     }
 }
 
-
+//加入一个空的元素
 void *
 ngx_array_push(ngx_array_t *a)
 {

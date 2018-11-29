@@ -154,6 +154,7 @@ ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
 }
 
 
+//配置解析
 char *
 ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
 {
@@ -372,10 +373,10 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
     found = 0;
 
-    //遍历所有modules
+    //遍历已加载的所有modules
     for (i = 0; cf->cycle->modules[i]; i++) {
 
-    	//取此modules对应的commands
+    	//取modules对应的commands
         cmd = cf->cycle->modules[i]->commands;
         if (cmd == NULL) {
             continue;
@@ -384,6 +385,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
         //遍历所有commands,找与name可匹配的cmd
         for ( /* void */ ; cmd->name.len; cmd++) {
 
+        	//名称匹配
             if (name->len != cmd->name.len) {
                 continue;
             }
@@ -783,11 +785,13 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     return NGX_ERROR;
                 }
 
+                //设置参数
                 word->data = ngx_pnalloc(cf->pool, b->pos - 1 - start + 1);
                 if (word->data == NULL) {
                     return NGX_ERROR;
                 }
 
+                //字符串转义处理
                 for (dst = word->data, src = start, len = 0;
                      src < b->pos - 1;
                      len++)
@@ -820,7 +824,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                     *dst++ = *src++;
                 }
                 *dst = '\0';
-                word->len = len;
+                word->len = len;//记录参数长度
 
                 if (ch == ';') {
                     return NGX_OK;

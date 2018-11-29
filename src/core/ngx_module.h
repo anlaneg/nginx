@@ -231,9 +231,11 @@ struct ngx_module_s {
     ngx_uint_t            version;
     const char           *signature;
 
+    //module的上下文
     void                 *ctx;
     //模块对应的commands
     ngx_command_t        *commands;
+    //模块类型
     ngx_uint_t            type;
 
     ngx_int_t           (*init_master)(ngx_log_t *log);

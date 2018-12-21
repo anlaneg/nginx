@@ -18,7 +18,7 @@ ngx_uint_t  ngx_tcp_nodelay_and_tcp_nopush;
 
 struct rlimit  rlmt;
 
-
+//各系统对应的io函数
 ngx_os_io_t ngx_os_io = {
     ngx_unix_recv,
     ngx_readv_chain,
@@ -57,6 +57,7 @@ ngx_os_init(ngx_log_t *log)
 
 #if (NGX_HAVE_SC_NPROCESSORS_ONLN)
     if (ngx_ncpu == 0) {
+    		//取系统cpu数目
         ngx_ncpu = sysconf(_SC_NPROCESSORS_ONLN);
     }
 #endif
@@ -66,12 +67,14 @@ ngx_os_init(ngx_log_t *log)
     }
 
 #if (NGX_HAVE_LEVEL1_DCACHE_LINESIZE)
+    //获取level1 数据cache的size
     size = sysconf(_SC_LEVEL1_DCACHE_LINESIZE);
     if (size > 0) {
         ngx_cacheline_size = size;
     }
 #endif
 
+    //cpu信息获取
     ngx_cpuinfo();
 
     if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {

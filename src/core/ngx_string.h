@@ -85,7 +85,9 @@ ngx_strlchr(u_char *p, u_char *last, u_char c)
  * while ZeroMemory() and bzero() are the calls.
  * icc7 may also inline several mov's of a zeroed register for small blocks.
  */
+//将buf指向的长度为n的内存区域格式化为0
 #define ngx_memzero(buf, n)       (void) memset(buf, 0, n)
+//将buf指向的长度为n的内存区域格式化为c
 #define ngx_memset(buf, c, n)     (void) memset(buf, c, n)
 
 
@@ -101,7 +103,9 @@ void *ngx_memcpy(void *dst, const void *src, size_t n);
  * gcc3 compiles memcpy(d, s, 4) to the inline "mov"es.
  * icc8 compile memcpy(d, s, 4) to the inline "mov"es or XMM moves.
  */
+//完成字符串copy
 #define ngx_memcpy(dst, src, n)   (void) memcpy(dst, src, n)
+//完成字符串copy并向后移动结果指针
 #define ngx_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
 
 #endif

@@ -82,6 +82,7 @@ static ngx_uint_t  ngx_slab_exact_size;
 static ngx_uint_t  ngx_slab_exact_shift;
 
 
+//slab 尺寸初始化
 void
 ngx_slab_sizes_init(void)
 {
@@ -95,6 +96,7 @@ ngx_slab_sizes_init(void)
 }
 
 
+//初如化slab
 void
 ngx_slab_init(ngx_slab_pool_t *pool)
 {

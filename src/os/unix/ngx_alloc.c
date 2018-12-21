@@ -8,9 +8,11 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+//内存页大小
 ngx_uint_t  ngx_pagesize;
+//内存页大小移位数
 ngx_uint_t  ngx_pagesize_shift;
+//系统cacheline size
 ngx_uint_t  ngx_cacheline_size;
 
 //采用malloc申请内存，size字节，失败返回NULL
@@ -26,6 +28,7 @@ ngx_alloc(size_t size, ngx_log_t *log)
                       "malloc(%uz) failed", size);
     }
 
+    //申请成功记日志
     ngx_log_debug2(NGX_LOG_DEBUG_ALLOC, log, 0, "malloc: %p:%uz", p, size);
 
     return p;

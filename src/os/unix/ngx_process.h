@@ -52,11 +52,13 @@ typedef struct {
 #define NGX_PROCESS_JUST_RESPAWN  -4
 #define NGX_PROCESS_DETACHED      -5
 
-
+//取当前进程id号
 #define ngx_getpid   getpid
+//取当前进程父进程id号
 #define ngx_getppid  getppid
 
 #ifndef ngx_log_pid
+//取当前进程pid
 #define ngx_log_pid  ngx_pid
 #endif
 

@@ -262,7 +262,7 @@ ngx_log_abort(ngx_err_t err, const char *fmt, ...)
                   "%*s", p - errstr, errstr);
 }
 
-//向stderr写
+//向stderr写格式化后的错误字符串信息
 void ngx_cdecl
 ngx_log_stderr(ngx_err_t err, const char *fmt, ...)
 {
@@ -272,26 +272,32 @@ ngx_log_stderr(ngx_err_t err, const char *fmt, ...)
 
     last = errstr + NGX_MAX_ERROR_STR;
 
+    //完成字符串copy,并使p指向字符串尾部
     p = ngx_cpymem(errstr, "nginx: ", 7);
 
+    //实现自定义的格式化输出
     va_start(args, fmt);
     p = ngx_vslprintf(p, last, fmt, args);
     va_end(args);
 
+    //如果有errno,则输出errno编号，及错误信息
     if (err) {
         p = ngx_log_errno(p, last, err);
     }
 
+    //如果p位置过大，则将p规范（实际上这里p一定不会远大于last,如果这样内存就越界了）
     if (p > last - NGX_LINEFEED_SIZE) {
         p = last - NGX_LINEFEED_SIZE;
     }
 
+    //添加换行符
     ngx_linefeed(p);
 
+    //将errstr中的内容输出
     (void) ngx_write_console(ngx_stderr, errstr, p - errstr);
 }
 
-//写error number
+//输出error number
 u_char *
 ngx_log_errno(u_char *buf, u_char *last, ngx_err_t err)
 {
@@ -312,6 +318,7 @@ ngx_log_errno(u_char *buf, u_char *last, ngx_err_t err)
     buf = ngx_slprintf(buf, last, " (%d: ", err);
 #endif
 
+    //将错误消息输出到buf中
     buf = ngx_strerror(err, buf, last - buf);
 
     if (buf < last) {
@@ -322,6 +329,7 @@ ngx_log_errno(u_char *buf, u_char *last, ngx_err_t err)
 }
 
 
+//初始化日志（打开日志文件，设置日志级别）
 ngx_log_t *
 ngx_log_init(u_char *prefix)
 {
@@ -331,6 +339,7 @@ ngx_log_init(u_char *prefix)
     ngx_log.file = &ngx_log_file;
     ngx_log.log_level = NGX_LOG_NOTICE;
 
+    //错误日志路径
     name = (u_char *) NGX_ERROR_LOG_PATH;
 
     /*
@@ -351,11 +360,11 @@ ngx_log_init(u_char *prefix)
 #if (NGX_WIN32)
     if (name[1] != ':') {
 #else
-    //名称不是以'/'开头的。
+    //名称不是以'/'开头的，即名称为相对地址。
     if (name[0] != '/') {
 #endif
 
-    	//如果指定了前缀，则使用前缀，否则使用默认前缀。
+    	//为相对地址时，如果指定了前缀，则使用前缀，否则使用默认前缀。
         if (prefix) {
             plen = ngx_strlen(prefix);
 
@@ -391,12 +400,12 @@ ngx_log_init(u_char *prefix)
         }
     }
 
-    //打开文件 $name
+    //打开文件 $name（采用write,append,create方式打开，默认flag=0x644)
     ngx_log_file.fd = ngx_open_file(name, NGX_FILE_APPEND,
                                     NGX_FILE_CREATE_OR_OPEN,
                                     NGX_FILE_DEFAULT_ACCESS);
 
-    //打开文件失败处理
+    //打开文件失败处理，输出错误日志，并将log重定向到stderr
     if (ngx_log_file.fd == NGX_INVALID_FILE) {
         ngx_log_stderr(ngx_errno,
                        "[alert] could not open error log file: "

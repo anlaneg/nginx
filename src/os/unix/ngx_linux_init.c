@@ -8,8 +8,9 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+//系统类型
 u_char  ngx_linux_kern_ostype[50];
+//kernel版本
 u_char  ngx_linux_kern_osrelease[50];
 
 
@@ -29,7 +30,7 @@ static ngx_os_io_t ngx_linux_io = {
 #endif
 };
 
-
+//os相关的初始化函数
 ngx_int_t
 ngx_os_specific_init(ngx_log_t *log)
 {

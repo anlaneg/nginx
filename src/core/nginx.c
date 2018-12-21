@@ -236,6 +236,7 @@ main(int argc, char *const *argv)
     ngx_regex_init();
 #endif
 
+    //设置进程id,父进程id
     ngx_pid = ngx_getpid();
     ngx_parent = ngx_getppid();
 
@@ -254,7 +255,7 @@ main(int argc, char *const *argv)
      * init_cycle->log is required for signal handlers and
      * ngx_process_options()
      */
-
+    //初始化ngx_cycle
     ngx_memzero(&init_cycle, sizeof(ngx_cycle_t));
     init_cycle.log = log;
     ngx_cycle = &init_cycle;
@@ -938,7 +939,7 @@ ngx_save_argv(ngx_cycle_t *cycle, int argc, char *const *argv)
     return NGX_OK;
 }
 
-//记录配置参数，将其填充进cycle
+//记录配置文件参数及配置前缀，路径前缀参数，将其填充进cycle
 static ngx_int_t
 ngx_process_options(ngx_cycle_t *cycle)
 {
@@ -950,7 +951,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         len = ngx_strlen(ngx_prefix);
         p = ngx_prefix;
 
-        //ngx_prefix有赋值，且不以'/'结尾。
+        //ngx_prefix有赋值，且不以'/'结尾。申请一块内存p,为其添加'/'
         if (len && !ngx_path_separator(p[len - 1])) {
             p = ngx_pnalloc(cycle->pool, len + 1);
             if (p == NULL) {
@@ -962,8 +963,10 @@ ngx_process_options(ngx_cycle_t *cycle)
             p[len++] = '/';
         }
 
+        //设置配置文件前缀信息
         cycle->conf_prefix.len = len;
         cycle->conf_prefix.data = p;
+        //设置路径前缀信息
         cycle->prefix.len = len;
         cycle->prefix.data = p;
 
@@ -1003,6 +1006,7 @@ ngx_process_options(ngx_cycle_t *cycle)
 #endif
     }
 
+    //设置配置文件路径
     if (ngx_conf_file) {
         cycle->conf_file.len = ngx_strlen(ngx_conf_file);
         cycle->conf_file.data = ngx_conf_file;
@@ -1017,7 +1021,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         return NGX_ERROR;
     }
 
-    //逆序遍历配置文件路径字符，获取配置文件所在目录路径
+    //逆序遍历配置文件路径字符，获取配置文件所在目录路径，更新至conf_prefix中
     for (p = cycle->conf_file.data + cycle->conf_file.len - 1;
          p > cycle->conf_file.data;
          p--)
@@ -1036,6 +1040,7 @@ ngx_process_options(ngx_cycle_t *cycle)
         cycle->conf_param.data = ngx_conf_params;
     }
 
+    //如果测试配置，则更改log level
     if (ngx_test_config) {
         cycle->log->log_level = NGX_LOG_INFO;
     }

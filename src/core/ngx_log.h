@@ -172,6 +172,7 @@ void ngx_cdecl ngx_log_debug_core(ngx_log_t *log, ngx_err_t err,
 
 #else /* no variadic macros */
 
+//为什么不合并这些宏？（为了支持“不支持多参的macro")
 #define ngx_log_debug0(level, log, err, fmt)                                  \
     if ((log)->log_level & level)                                             \
         ngx_log_debug_core(log, err, fmt)

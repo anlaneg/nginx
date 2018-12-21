@@ -62,11 +62,14 @@ typedef struct {
     ngx_uint_t            failed;
 } ngx_pool_data_t;
 
-
+//1。引入ngx_pool_s结构的目的是防止内存过度碎片化
+//2。减少系统函数的调用次数，
+//3. 提高分配释放的速度
 struct ngx_pool_s {
 	//数据块
     ngx_pool_data_t       d;
     //区分large,small分配方式
+    //自pool中申请内存时，大于max,则采用large方式分配，否则采用small方式分配
     size_t                max;
     //当前可分配的池
     ngx_pool_t           *current;
@@ -76,6 +79,7 @@ struct ngx_pool_s {
     ngx_pool_large_t     *large;
     //需要进行清理的
     ngx_pool_cleanup_t   *cleanup;
+    //pool对应的log
     ngx_log_t            *log;
 };
 

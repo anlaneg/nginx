@@ -32,6 +32,7 @@ void *ngx_memalign(size_t alignment, size_t size, ngx_log_t *log);
 
 #else
 
+//如果没有memalign，则调用ngx_alloc进行内存申请（不考虑对齐）
 #define ngx_memalign(alignment, size, log)  ngx_alloc(size, log)
 
 #endif

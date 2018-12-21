@@ -26,10 +26,11 @@ ngx_create_pool(size_t size, ngx_log_t *log)
         return NULL;
     }
 
-    //last指向一个ngx_pool_t偏移后
+    //last指向一个ngx_pool_t偏移后(last指向的是可分配的起始位置）
     p->d.last = (u_char *) p + sizeof(ngx_pool_t);
+    //end指向的是容许分配的最大位置
     p->d.end = (u_char *) p + size;
-    p->d.next = NULL;
+    p->d.next = NULL;//next指向的是下一个可分配的块
     p->d.failed = 0;
 
     size = size - sizeof(ngx_pool_t);
@@ -83,14 +84,14 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
 #endif
 
-    //这里不释放l,l也在这个pool里,在释放small时可以释放掉
+    //这里不释放l本身,l也在这个pool里,在释放small时可以释放掉
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
             ngx_free(l->alloc);
         }
     }
 
-    //一个pool，一个pool的释放（这是整块内存）
+    //一个pool，一个pool地释放（这是整块内存）
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
         ngx_free(p);
 
@@ -161,6 +162,7 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
     do {
         m = p->d.last;
 
+        //如果需要对齐，则使m对齐
         if (align) {
             m = ngx_align_ptr(m, NGX_ALIGNMENT);
         }

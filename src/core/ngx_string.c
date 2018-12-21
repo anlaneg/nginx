@@ -159,8 +159,9 @@ ngx_slprintf(u_char *buf, u_char *last, const char *fmt, ...)
 }
 
 
+//实现格式化输出
 u_char *
-ngx_vslprintf(u_char *buf, u_char *last, const char *fmt, va_list args)
+ngx_vslprintf(u_char *buf/*缓冲起始*/, u_char *last/*缓冲结束*/, const char *fmt, va_list args)
 {
     u_char                *p, zero;
     int                    d;

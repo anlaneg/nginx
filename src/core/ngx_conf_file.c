@@ -69,6 +69,7 @@ ngx_conf_param(ngx_conf_t *cf)
 
     param = &cf->cycle->conf_param;
 
+    //如果参数长度为0，则跳出
     if (param->len == 0) {
         return NGX_CONF_OK;
     }
@@ -164,9 +165,9 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
     ngx_buf_t         buf;
     ngx_conf_file_t  *prev, conf_file;
     enum {
-        parse_file = 0,
-        parse_block,
-        parse_param
+        parse_file = 0,//解析文件
+        parse_block,//解析块
+        parse_param//解析参数
     } type;
 
 #if (NGX_SUPPRESS_WARN)
@@ -177,7 +178,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
     if (filename) {
 
         /* open configuration file */
-    	//打开配置文件
+    	//如果给出了文件名称，则打开配置文件
         fd = ngx_open_file(filename->data, NGX_FILE_RDONLY, NGX_FILE_OPEN, 0);
 
         if (fd == NGX_INVALID_FILE) {
@@ -198,6 +199,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
                           ngx_fd_info_n " \"%s\" failed", filename->data);
         }
 
+        //置cf的配置文件buffer
         cf->conf_file->buffer = &buf;
 
         buf.start = ngx_alloc(NGX_CONF_BUFFER, cf->log);
@@ -257,13 +259,12 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
          */
 
         if (rc == NGX_ERROR) {
-        	//出错
+        	//返回遇到格式出错
             goto done;
         }
 
         if (rc == NGX_CONF_BLOCK_DONE) {
-        	//块结束
-
+        	//返回遇到块结束符，如果未在解析block,则failed
             if (type != parse_block) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"}\"");
                 goto failed;
@@ -273,8 +274,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
         if (rc == NGX_CONF_FILE_DONE) {
-        	//文件结束
-
+        	//返回遇到文件结束符，如果在解
             if (type == parse_block) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "unexpected end of file, expecting \"}\"");
@@ -522,8 +522,8 @@ ngx_conf_read_token(ngx_conf_t *cf)
     off_t        file_size;
     size_t       len;
     ssize_t      n, size;
-    ngx_uint_t   found, need_space, last_space, sharp_comment, variable;
-    ngx_uint_t   quoted, s_quoted, d_quoted, start_line;
+    ngx_uint_t   found, need_space, last_space, sharp_comment/*标记遇到注释符*/, variable/*标记遇到变量*/;
+    ngx_uint_t   quoted/*标记遇到转义符*/, s_quoted/*标记遇到单引号*/, d_quoted/*标记遇到双引号*/, start_line;
     ngx_str_t   *word;
     ngx_buf_t   *b, *dump;
 
@@ -633,18 +633,22 @@ ngx_conf_read_token(ngx_conf_t *cf)
 
         ch = *b->pos++;
 
+        //到达行结尾，行号加1
         if (ch == LF) {
             cf->conf_file->line++;
 
+            //如果出现了注释，注释标记清0
             if (sharp_comment) {
                 sharp_comment = 0;
             }
         }
 
+        //当前非换行符，且已遇到注释符，则忽略
         if (sharp_comment) {
             continue;
         }
 
+        //之前遇到了转义符，当前符号被转义，关闭转义
         if (quoted) {
             quoted = 0;
             continue;
@@ -661,6 +665,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 return NGX_OK;
             }
 
+            //ch为'{'，则认为遇到块起始符
             if (ch == '{') {
                 return NGX_CONF_BLOCK_START;
             }
@@ -715,23 +720,27 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 sharp_comment = 1;
                 continue;
 
+            //遇到一个转义符
             case '\\':
                 quoted = 1;
                 last_space = 0;
                 continue;
 
+            //遇到双引号
             case '"':
                 start++;
                 d_quoted = 1;
                 last_space = 0;
                 continue;
 
+            //遇到单引号
             case '\'':
                 start++;
                 s_quoted = 1;
                 last_space = 0;
                 continue;
 
+            //遇到变量引用符
             case '$':
                 variable = 1;
                 last_space = 0;
@@ -742,10 +751,12 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
 
         } else {
+        		//如果前一个为$符号，且本符号为'{'则接下来为变量名
             if (ch == '{' && variable) {
                 continue;
             }
 
+            //标记当前解析的为非变量
             variable = 0;
 
             if (ch == '\\') {
@@ -759,6 +770,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
 
             if (d_quoted) {
+              	//之前是双引号，当前为双引号，则双引号解析完成，
                 if (ch == '"') {
                     d_quoted = 0;
                     need_space = 1;
@@ -766,6 +778,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
                 }
 
             } else if (s_quoted) {
+            	//之前是单引号，当前为单引号，则单强与解析完成
                 if (ch == '\'') {
                     s_quoted = 0;
                     need_space = 1;
@@ -780,6 +793,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
             }
 
             if (found) {
+            		//查询参数
                 word = ngx_array_push(cf->args);
                 if (word == NULL) {
                     return NGX_ERROR;

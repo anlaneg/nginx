@@ -16,7 +16,7 @@
 typedef struct ngx_listening_s  ngx_listening_t;
 
 struct ngx_listening_s {
-    ngx_socket_t        fd;
+    ngx_socket_t        fd;//需要监听的fd
 
     struct sockaddr    *sockaddr;
     socklen_t           socklen;    /* size of sockaddr */

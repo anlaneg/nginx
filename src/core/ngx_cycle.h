@@ -49,6 +49,7 @@ struct ngx_cycle_s {
     ngx_connection_t         *free_connections;
     ngx_uint_t                free_connection_n;
 
+    //当前的模块数组
     ngx_module_t            **modules;
     //当前加载的模块数
     ngx_uint_t                modules_n;

@@ -221,9 +221,9 @@
 
 struct ngx_module_s {
     ngx_uint_t            ctx_index;
-    ngx_uint_t            index;
+    ngx_uint_t            index;//module编号
 
-    char                 *name;
+    char                 *name;//module名称
 
     ngx_uint_t            spare0;
     ngx_uint_t            spare1;

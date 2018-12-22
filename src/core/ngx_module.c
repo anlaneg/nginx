@@ -17,11 +17,13 @@ static ngx_uint_t ngx_module_index(ngx_cycle_t *cycle);
 static ngx_uint_t ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type,
     ngx_uint_t index);
 
-
+//支持的模块的总数
 ngx_uint_t         ngx_max_module;
+//模块总数
 static ngx_uint_t  ngx_modules_n;
 
 
+//设置module 编号及名称，设置模块总数
 ngx_int_t
 ngx_preinit_modules(void)
 {
@@ -47,13 +49,14 @@ ngx_cycle_modules(ngx_cycle_t *cycle)
      * copy static modules to it
      */
 
+	//申请modules空间
     cycle->modules = ngx_pcalloc(cycle->pool, (ngx_max_module + 1)
                                               * sizeof(ngx_module_t *));
     if (cycle->modules == NULL) {
         return NGX_ERROR;
     }
 
-    //将ngx_modules加载到cycle->modules
+    //将ngx_modules填充到cycle->modules
     ngx_memcpy(cycle->modules, ngx_modules,
                ngx_modules_n * sizeof(ngx_module_t *));
 

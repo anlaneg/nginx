@@ -104,7 +104,7 @@ typedef struct {
     ngx_file_t            file;
     ngx_buf_t            *buffer;
     ngx_buf_t            *dump;
-    ngx_uint_t            line;
+    ngx_uint_t            line;//行号
 } ngx_conf_file_t;
 
 

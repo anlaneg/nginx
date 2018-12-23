@@ -243,13 +243,15 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
         module = cycle->modules[i]->ctx;
 
-        //调用module的create_conf（创建配置）
+        //调用module的create_conf（创建配置结构体内存）
         if (module->create_conf) {
             rv = module->create_conf(cycle);
             if (rv == NULL) {
                 ngx_destroy_pool(pool);
                 return NULL;
             }
+
+            //设置返回的配置结构体指针
             cycle->conf_ctx[cycle->modules[i]->index] = rv;
         }
     }
@@ -299,11 +301,13 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
+    //显示配置文件语法正确提示
     if (ngx_test_config && !ngx_quiet_mode) {
         ngx_log_stderr(0, "the configuration file %s syntax is ok",
                        cycle->conf_file.data);
     }
 
+    //初始化core module的配置
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->type != NGX_CORE_MODULE) {
             continue;
@@ -312,6 +316,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         module = cycle->modules[i]->ctx;
 
         if (module->init_conf) {
+        		//有init_conf回调，通过此回调初始化配置
             if (module->init_conf(cycle,
                                   cycle->conf_ctx[cycle->modules[i]->index])
                 == NGX_CONF_ERROR)

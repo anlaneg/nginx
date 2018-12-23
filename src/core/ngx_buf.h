@@ -19,7 +19,7 @@ typedef struct ngx_buf_s  ngx_buf_t;
 
 struct ngx_buf_s {
     u_char          *pos;//当前的读取位置
-    u_char          *last;
+    u_char          *last;//指向可分析的最后一个位置
     off_t            file_pos;
     off_t            file_last;
 

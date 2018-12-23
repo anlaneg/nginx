@@ -262,7 +262,7 @@ struct ngx_module_s {
 
 typedef struct {
     ngx_str_t             name;
-    void               *(*create_conf)(ngx_cycle_t *cycle);
+    void               *(*create_conf)(ngx_cycle_t *cycle);//申请并初始化配置结构体
     char               *(*init_conf)(ngx_cycle_t *cycle, void *conf);
 } ngx_core_module_t;
 

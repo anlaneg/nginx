@@ -420,6 +420,7 @@ ngx_event_init_conf(ngx_cycle_t *cycle, void *conf)
     ngx_listening_t  *ls;
 #endif
 
+    //尝试获取event模块的配置，如果拿不到就报错
     if (ngx_get_conf(cycle->conf_ctx, ngx_events_module) == NULL) {
         ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
                       "no \"events\" section in configuration");

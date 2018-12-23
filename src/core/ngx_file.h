@@ -14,14 +14,14 @@
 
 
 struct ngx_file_s {
-    ngx_fd_t                   fd;
-    ngx_str_t                  name;
+    ngx_fd_t                   fd;//文件fd
+    ngx_str_t                  name;//文件名称
     ngx_file_info_t            info;//文件stat信息
 
-    off_t                      offset;
+    off_t                      offset;//文件当前offset
     off_t                      sys_offset;
 
-    ngx_log_t                 *log;
+    ngx_log_t                 *log;//文件所属的log
 
 #if (NGX_THREADS || NGX_COMPAT)
     ngx_int_t                (*thread_handler)(ngx_thread_task_t *task,

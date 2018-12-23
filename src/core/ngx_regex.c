@@ -370,7 +370,7 @@ ngx_regex_module_init(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+//正则表达式配置初始化
 static void *
 ngx_regex_create_conf(ngx_cycle_t *cycle)
 {

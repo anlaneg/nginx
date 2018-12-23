@@ -1053,12 +1053,13 @@ ngx_process_options(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+//申请并初始化配置结构体
 static void *
 ngx_core_module_create_conf(ngx_cycle_t *cycle)
 {
     ngx_core_conf_t  *ccf;
 
+    //申请core配置结构体
     ccf = ngx_pcalloc(cycle->pool, sizeof(ngx_core_conf_t));
     if (ccf == NULL) {
         return NULL;

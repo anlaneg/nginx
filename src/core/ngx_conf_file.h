@@ -42,7 +42,9 @@
 #define NGX_CONF_ARGS_NUMBER 0x000000ff
 #define NGX_CONF_BLOCK       0x00000100
 #define NGX_CONF_FLAG        0x00000200
+//任意多个参数
 #define NGX_CONF_ANY         0x00000400
+//参数多于1个
 #define NGX_CONF_1MORE       0x00000800
 #define NGX_CONF_2MORE       0x00001000
 
@@ -81,6 +83,7 @@ struct ngx_command_s {
     ngx_uint_t            type;
     //命令字对应的回调
     char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+    //用于辅助取配置结构体（来源于cf->ctx数组中的位置）
     ngx_uint_t            conf;
     ngx_uint_t            offset;
     void                 *post;
@@ -120,7 +123,7 @@ typedef char *(*ngx_conf_handler_pt)(ngx_conf_t *cf,
 
 struct ngx_conf_s {
     char                 *name;
-    ngx_array_t          *args;
+    ngx_array_t          *args;//命令参数
 
     ngx_cycle_t          *cycle;
     ngx_pool_t           *pool;

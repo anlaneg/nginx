@@ -110,9 +110,9 @@ typedef struct {
     ngx_uint_t                cpu_affinity_n;
     ngx_cpuset_t             *cpu_affinity;
 
-    char                     *username;
-    ngx_uid_t                 user;
-    ngx_gid_t                 group;
+    char                     *username;//配置的用户名
+    ngx_uid_t                 user;//用户id
+    ngx_gid_t                 group;//配置的组id
 
     ngx_str_t                 working_directory;
     ngx_str_t                 lock_file;

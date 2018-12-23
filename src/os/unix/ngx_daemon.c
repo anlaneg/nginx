@@ -23,6 +23,7 @@ ngx_daemon(ngx_log_t *log)
         break;
 
     default:
+    		//父进程退出
         exit(0);
     }
 

@@ -363,7 +363,7 @@ done:
 
 
 static ngx_int_t
-ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
+ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last/*指令是否以';','}'结束？*/)
 {
     char           *rv;
     void           *conf, **confp;
@@ -375,7 +375,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
     found = 0;
 
-    //遍历已加载的所有modules
+    //遍历已加载的所有modules(针对它们的commands,查找name的匹配）
     for (i = 0; cf->cycle->modules[i]; i++) {
 
     		//取modules对应的commands
@@ -411,6 +411,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 continue;
             }
 
+            //cmd不是块格式，但cmd没有以‘;'结束，报错
             if (!(cmd->type & NGX_CONF_BLOCK) && last != NGX_OK) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                   "directive \"%s\" is not terminated by \";\"",
@@ -418,6 +419,7 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
                 return NGX_ERROR;
             }
 
+            //cmd是块格式，但cmd没有以'}'结束，报错
             if ((cmd->type & NGX_CONF_BLOCK) && last != NGX_CONF_BLOCK_START) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "directive \"%s\" has no opening \"{\"",
@@ -431,25 +433,25 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
             if (!(cmd->type & NGX_CONF_ANY)) {
 
                 if (cmd->type & NGX_CONF_FLAG) {
-
+                		//参数为2个
                     if (cf->args->nelts != 2) {
                         goto invalid;
                     }
 
                 } else if (cmd->type & NGX_CONF_1MORE) {
-
+                		//检查参数多于1个
                     if (cf->args->nelts < 2) {
                         goto invalid;
                     }
 
                 } else if (cmd->type & NGX_CONF_2MORE) {
-
+                		//检查参数多于2个
                     if (cf->args->nelts < 3) {
                         goto invalid;
                     }
 
                 } else if (cf->args->nelts > NGX_CONF_MAX_ARGS) {
-
+                		//最多支持8个参数
                     goto invalid;
 
                 } else if (!(cmd->type & argument_number[cf->args->nelts - 1]))
@@ -464,12 +466,14 @@ ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last)
 
             //依type获取command填充参数的来源
             if (cmd->type & NGX_DIRECT_CONF) {
+            		//取module配置指针
                 conf = ((void **) cf->ctx)[cf->cycle->modules[i]->index];
 
             } else if (cmd->type & NGX_MAIN_CONF) {
+            		//取module的配置指针地址
                 conf = &(((void **) cf->ctx)[cf->cycle->modules[i]->index]);
-
             } else if (cf->ctx) {
+            		//配置结构体来源于cf->ctx中
                 confp = *(void **) ((char *) cf->ctx + cmd->conf);
 
                 if (confp) {

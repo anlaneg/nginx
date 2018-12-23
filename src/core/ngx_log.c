@@ -521,6 +521,7 @@ ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log)
     for (i = 2; i < cf->args->nelts; i++) {
         found = 0;
 
+        	//确认是那一种log级别，通过字符串匹配获得
         for (n = 1; n <= NGX_LOG_DEBUG; n++) {
             if (ngx_strcmp(value[i].data, err_levels[n].data) == 0) {
 
@@ -567,7 +568,8 @@ ngx_log_set_levels(ngx_conf_t *cf, ngx_log_t *log)
     return NGX_CONF_OK;
 }
 
-
+//配置error log地址
+//命令格式：'error_log log/error.log debug'
 static char *
 ngx_error_log(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -604,7 +606,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 
     value = cf->args->elts;
 
-    //stderr处理
+    //error_log为stderr时
     if (ngx_strcmp(value[1].data, "stderr") == 0) {
         ngx_str_null(&name);
         cf->cycle->log_use_stderr = 1;
@@ -615,7 +617,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
         }
 
     } else if (ngx_strncmp(value[1].data, "memory:", 7) == 0) {
-    	//memory方式处理
+    	//error_log为memory方式时
 #if (NGX_DEBUG)
         size_t                 size, needed;
         ngx_pool_cleanup_t    *cln;
@@ -674,7 +676,7 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
 #endif
 
     } else if (ngx_strncmp(value[1].data, "syslog:", 7) == 0) {
-        //syslog处理
+        //error_log为syslog时处理
     	peer = ngx_pcalloc(cf->pool, sizeof(ngx_syslog_peer_t));
         if (peer == NULL) {
             return NGX_CONF_ERROR;
@@ -688,13 +690,14 @@ ngx_log_set_log(ngx_conf_t *cf, ngx_log_t **head)
         new_log->wdata = peer;
 
     } else {
-        //普通文件方式
+        //error_log为普通文件方式时
     	new_log->file = ngx_conf_open_file(cf->cycle, &value[1]);
         if (new_log->file == NULL) {
             return NGX_CONF_ERROR;
         }
     }
 
+    //设置log level
     if (ngx_log_set_levels(cf, new_log) != NGX_CONF_OK) {
         return NGX_CONF_ERROR;
     }

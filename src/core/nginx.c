@@ -63,7 +63,7 @@ static ngx_command_t  ngx_core_commands[] = {
 
     { ngx_string("pid"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_conf_set_str_slot,
+      ngx_con_set_str_slot,
       0,
       offsetof(ngx_core_conf_t, pid),
       NULL },
@@ -340,7 +340,7 @@ main(int argc, char *const *argv)
         return 0;
     }
 
-    //信号处理
+    //配置了信号，针对子进程进行信号处理（加载配置，退出等）
     if (ngx_signal) {
         return ngx_signal_process(cycle, ngx_signal);
     }
@@ -1229,6 +1229,8 @@ ngx_core_module_init_conf(ngx_cycle_t *cycle, void *conf)
 }
 
 
+//设置user,group配置
+//配置格式："user www www;"
 static char *
 ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1248,10 +1250,12 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     struct group     *grp;
     ngx_str_t        *value;
 
+    //user已配置
     if (ccf->user != (uid_t) NGX_CONF_UNSET_UINT) {
         return "is duplicate";
     }
 
+    //当前用户没有root权限，报错
     if (geteuid() != 0) {
         ngx_conf_log_error(NGX_LOG_WARN, cf, 0,
                            "the \"user\" directive makes sense only "
@@ -1264,6 +1268,7 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ccf->username = (char *) value[1].data;
 
+    //取用户id号
     ngx_set_errno(0);
     pwd = getpwnam((const char *) value[1].data);
     if (pwd == NULL) {
@@ -1274,6 +1279,7 @@ ngx_set_user(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ccf->user = pwd->pw_uid;
 
+    //取组配置，设置组id
     group = (char *) ((cf->args->nelts == 2) ? value[1].data : value[2].data);
 
     ngx_set_errno(0);
@@ -1515,6 +1521,7 @@ ngx_get_cpu_affinity(ngx_uint_t n)
 
 
 //设置系统工作进程数
+//格式："worker processes 5;"
 static char *
 ngx_set_worker_processes(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

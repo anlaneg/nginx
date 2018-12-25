@@ -81,7 +81,7 @@ ngx_time_init(void)
     ngx_time_update();
 }
 
-
+//更新各timer格式对应的当前时间
 void
 ngx_time_update(void)
 {

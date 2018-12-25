@@ -24,7 +24,7 @@ ngx_event_process_posted(ngx_cycle_t *cycle, ngx_queue_t *posted)
     //处理posted队列中所有event
     while (!ngx_queue_empty(posted)) {
 
-    	//取队列中有event
+    		//取队列中有event
         q = ngx_queue_head(posted);
         ev = ngx_queue_data(q, ngx_event_t, queue);
 

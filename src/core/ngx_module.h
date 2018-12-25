@@ -242,9 +242,11 @@ struct ngx_module_s {
 
     ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
 
+    //进程初始化时调用
     ngx_int_t           (*init_process)(ngx_cycle_t *cycle);
     ngx_int_t           (*init_thread)(ngx_cycle_t *cycle);
     void                (*exit_thread)(ngx_cycle_t *cycle);
+    //进程退出时调用
     void                (*exit_process)(ngx_cycle_t *cycle);
 
     void                (*exit_master)(ngx_cycle_t *cycle);

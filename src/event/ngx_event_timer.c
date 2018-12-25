@@ -28,13 +28,15 @@ ngx_event_timer_init(ngx_log_t *log)
     return NGX_OK;
 }
 
-
+//寻找首个需要触发的timer的到期时间，如果时间为0，则立即到期，
+//否则返回的是一个大于0的数，表示到期时间ms数
 ngx_msec_t
 ngx_event_find_timer(void)
 {
     ngx_msec_int_t      timer;
     ngx_rbtree_node_t  *node, *root, *sentinel;
 
+    //无待触发的timer
     if (ngx_event_timer_rbtree.root == &ngx_event_timer_sentinel) {
         return NGX_TIMER_INFINITE;
     }
@@ -44,6 +46,7 @@ ngx_event_find_timer(void)
 
     node = ngx_rbtree_min(root, sentinel);
 
+    //获得待触发的时间差
     timer = (ngx_msec_int_t) (node->key - ngx_current_msec);
 
     return (ngx_msec_t) (timer > 0 ? timer : 0);

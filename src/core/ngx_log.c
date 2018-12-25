@@ -489,7 +489,7 @@ ngx_log_redirect_stderr(ngx_cycle_t *cycle)
     return NGX_OK;
 }
 
-
+//找首个输出到文件的log
 ngx_log_t *
 ngx_log_get_file_log(ngx_log_t *head)
 {

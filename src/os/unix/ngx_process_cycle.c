@@ -36,11 +36,11 @@ ngx_pid_t     ngx_parent;//父进程id
 sig_atomic_t  ngx_reap;
 sig_atomic_t  ngx_sigio;
 sig_atomic_t  ngx_sigalrm;
-sig_atomic_t  ngx_terminate;
-sig_atomic_t  ngx_quit;
+sig_atomic_t  ngx_terminate;//nginx需要中止
+sig_atomic_t  ngx_quit;//nginx需要退出
 sig_atomic_t  ngx_debug_quit;
 ngx_uint_t    ngx_exiting;
-sig_atomic_t  ngx_reconfigure;
+sig_atomic_t  ngx_reconfigure;//重新配置nginx
 sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
@@ -297,6 +297,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
         exit(2);
     }
 
+    //调用所有modules的init_process
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->init_process) {
             if (cycle->modules[i]->init_process(cycle) == NGX_ERROR) {
@@ -309,8 +310,10 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
     for ( ;; ) {
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "worker cycle");
 
+        //事件及timer处理（正常业务函数）
         ngx_process_events_and_timers(cycle);
 
+        //如果进程需要终止，则调用exit_process函数
         if (ngx_terminate || ngx_quit) {
 
             for (i = 0; cycle->modules[i]; i++) {
@@ -319,13 +322,16 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
                 }
             }
 
+            //退出进程
             ngx_master_process_exit(cycle);
         }
 
+        //需要重新配置nginx
         if (ngx_reconfigure) {
             ngx_reconfigure = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reconfiguring");
 
+            //重新创建cycle,加载配置文件
             cycle = ngx_init_cycle(cycle);
             if (cycle == NULL) {
                 cycle = (ngx_cycle_t *) ngx_cycle;
@@ -335,6 +341,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
             ngx_cycle = cycle;
         }
 
+        //重新打开已打开的文件
         if (ngx_reopen) {
             ngx_reopen = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");
@@ -696,6 +703,7 @@ ngx_master_process_exit(ngx_cycle_t *cycle)
 
     ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "exit");
 
+    //调用exit_master回调
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->exit_master) {
             cycle->modules[i]->exit_master(cycle);

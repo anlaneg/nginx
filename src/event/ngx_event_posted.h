@@ -13,7 +13,7 @@
 #include <ngx_core.h>
 #include <ngx_event.h>
 
-
+//检查event是否已被post,如果未置post，则将其移至q队列结尾
 #define ngx_post_event(ev, q)                                                 \
                                                                               \
     if (!(ev)->posted) {                                                      \

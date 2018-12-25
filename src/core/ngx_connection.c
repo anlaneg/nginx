@@ -1017,6 +1017,7 @@ ngx_configure_listening_sockets(ngx_cycle_t *cycle)
 }
 
 
+//关闭监听的socket
 void
 ngx_close_listening_sockets(ngx_cycle_t *cycle)
 {

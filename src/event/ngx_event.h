@@ -32,7 +32,7 @@ struct ngx_event_s {
 
     unsigned         write:1;
 
-    unsigned         accept:1;
+    unsigned         accept:1;//事件是否放在accept队列中等待处理
 
     /* used to detect the stale events in kqueue and epoll */
     unsigned         instance:1;
@@ -121,7 +121,7 @@ struct ngx_event_s {
     ngx_rbtree_node_t   timer;
 
     /* the posted queue */
-    ngx_queue_t      queue;
+    ngx_queue_t      queue;//用于挂接在posted队列中
 
 #if 0
 
@@ -177,6 +177,7 @@ struct ngx_event_aio_s {
 typedef struct {
 	//event添加
     ngx_int_t  (*add)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+    //event删除
     ngx_int_t  (*del)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
 
     ngx_int_t  (*enable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
@@ -187,9 +188,11 @@ typedef struct {
 
     ngx_int_t  (*notify)(ngx_event_handler_pt handler);
 
+    //（例如epoll实现对应的ngx_epoll_process_events）
     ngx_int_t  (*process_events)(ngx_cycle_t *cycle, ngx_msec_t timer,
                                  ngx_uint_t flags);
 
+    //event模块初始化
     ngx_int_t  (*init)(ngx_cycle_t *cycle, ngx_msec_t timer);
     void       (*done)(ngx_cycle_t *cycle);
 } ngx_event_actions_t;
@@ -408,7 +411,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define NGX_CLEAR_EVENT    0    /* dummy declaration */
 #endif
 
-//event处理函数
+//event处理函数（调用对应的event后端处理事件）
 #define ngx_process_events   ngx_event_actions.process_events
 #define ngx_done_events      ngx_event_actions.done
 
@@ -416,12 +419,16 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define ngx_add_event        ngx_event_actions.add
 //event删除函数
 #define ngx_del_event        ngx_event_actions.del
+//连接对应的读写等事件添加函数
 #define ngx_add_conn         ngx_event_actions.add_conn
+//连接对应的读写等事件删除函数
 #define ngx_del_conn         ngx_event_actions.del_conn
 
 #define ngx_notify           ngx_event_actions.notify
 
+//timer事件的添加
 #define ngx_add_timer        ngx_event_add_timer
+//timer事件的移除
 #define ngx_del_timer        ngx_event_del_timer
 
 
@@ -492,6 +499,7 @@ extern ngx_atomic_t  *ngx_stat_waiting;
 
 
 #define NGX_UPDATE_TIME         1
+//事件需要存入队列，延后处理
 #define NGX_POST_EVENTS         2
 
 

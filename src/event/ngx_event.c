@@ -203,6 +203,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         flags = 0;
 
     } else {
+    		//查找首个待处理timer的过期时间
         timer = ngx_event_find_timer();
         flags = NGX_UPDATE_TIME;
 
@@ -241,7 +242,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     delta = ngx_current_msec;
 
-    //timer事件处理
+    //timer事件处理（调用回调）
     (void) ngx_process_events(cycle, timer, flags);
 
     delta = ngx_current_msec - delta;
@@ -249,7 +250,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, cycle->log, 0,
                    "timer delta: %M", delta);
 
-    //处理ngx_posted_accept_events事件队列
+    //遍历并处理ngx_posted_accept_events事件队列，触发事件
     ngx_event_process_posted(cycle, &ngx_posted_accept_events);
 
     if (ngx_accept_mutex_held) {
@@ -257,10 +258,11 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     }
 
     if (delta) {
+    		//定时器事件触发
         ngx_event_expire_timers();
     }
 
-    //处理ngx_posted_events事件队列
+    //遍历并触发ngx_posted_events事件队列
     ngx_event_process_posted(cycle, &ngx_posted_events);
 }
 

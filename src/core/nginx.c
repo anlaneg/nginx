@@ -544,6 +544,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
 
     ccf = (ngx_core_conf_t *) ngx_get_conf(cycle->conf_ctx, ngx_core_module);
 
+    //如果ccf已有environment,则直接返回
     if (last == NULL && ccf->environment) {
         return ccf->environment;
     }
@@ -558,6 +559,7 @@ ngx_set_environment(ngx_cycle_t *cycle, ngx_uint_t *last)
         }
     }
 
+    //ccf->env中不包含TZ,向其加入"TZ"
     var = ngx_array_push(&ccf->env);
     if (var == NULL) {
         return NULL;

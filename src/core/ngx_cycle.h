@@ -117,7 +117,7 @@ typedef struct {
     ngx_str_t                 working_directory;
     ngx_str_t                 lock_file;
 
-    ngx_str_t                 pid;
+    ngx_str_t                 pid;//pid文件名称
     ngx_str_t                 oldpid;
 
     ngx_array_t               env;

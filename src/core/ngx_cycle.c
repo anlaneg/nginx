@@ -316,7 +316,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         module = cycle->modules[i]->ctx;
 
         if (module->init_conf) {
-        		//有init_conf回调，通过此回调初始化配置
+        	//有init_conf回调，通过此回调初始化配置
             if (module->init_conf(cycle,
                                   cycle->conf_ctx[cycle->modules[i]->index])
                 == NGX_CONF_ERROR)
@@ -368,6 +368,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
+    //创建cycle->paths指定的目录
     if (ngx_create_paths(cycle, ccf->user) != NGX_OK) {
         goto failed;
     }
@@ -989,7 +990,7 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDWR,
                             create, NGX_FILE_DEFAULT_ACCESS);
 
-    //打开文件失败
+    //打开pid文件失败
     if (file.fd == NGX_INVALID_FILE) {
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno,
                       ngx_open_file_n " \"%s\" failed", file.name.data);

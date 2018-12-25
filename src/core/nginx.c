@@ -879,6 +879,7 @@ ngx_get_options(int argc, char *const *argv)
                     || ngx_strcmp(ngx_signal, "reopen") == 0
                     || ngx_strcmp(ngx_signal, "reload") == 0)
                 {
+                	//进程变更为信号处理进程
                     ngx_process = NGX_PROCESS_SIGNALLER;
                     goto next;
                 }

@@ -536,9 +536,11 @@ ngx_add_path(ngx_conf_t *cf, ngx_path_t **slot)
 
     p = cf->cycle->paths.elts;
     for (i = 0; i < cf->cycle->paths.nelts; i++) {
+    	//检查要添加的目录是否已存在，如果不存在，则将slot指定的path加入
         if (p[i]->name.len == path->name.len
             && ngx_strcmp(p[i]->name.data, path->name.data) == 0)
         {
+        	//path相同，但data不同，报错
             if (p[i]->data != path->data) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                    "the same path name \"%V\" "
@@ -587,6 +589,7 @@ ngx_add_path(ngx_conf_t *cf, ngx_path_t **slot)
         }
     }
 
+    //添加新的path,并设置
     p = ngx_array_push(&cf->cycle->paths);
     if (p == NULL) {
         return NGX_ERROR;
@@ -598,6 +601,7 @@ ngx_add_path(ngx_conf_t *cf, ngx_path_t **slot)
 }
 
 
+//创建cycle->paths中指定的目录，并设置其onwer为user,权限位为用户可“读写执行”
 ngx_int_t
 ngx_create_paths(ngx_cycle_t *cycle, ngx_uid_t user)
 {
@@ -605,10 +609,12 @@ ngx_create_paths(ngx_cycle_t *cycle, ngx_uid_t user)
     ngx_uint_t        i;
     ngx_path_t      **path;
 
+    //创建paths指定的目录
     path = cycle->paths.elts;
     for (i = 0; i < cycle->paths.nelts; i++) {
 
         if (ngx_create_dir(path[i]->name.data, 0700) == NGX_FILE_ERROR) {
+        	//创建目录失败
             err = ngx_errno;
             if (err != NGX_EEXIST) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, err,
@@ -626,12 +632,14 @@ ngx_create_paths(ngx_cycle_t *cycle, ngx_uid_t user)
         {
         ngx_file_info_t   fi;
 
+        //取文件状态
         if (ngx_file_info(path[i]->name.data, &fi) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
                           ngx_file_info_n " \"%s\" failed", path[i]->name.data);
             return NGX_ERROR;
         }
 
+        //目录用户名称不为user,更改为user
         if (fi.st_uid != user) {
             if (chown((const char *) path[i]->name.data, user, -1) == -1) {
                 ngx_log_error(NGX_LOG_EMERG, cycle->log, ngx_errno,
@@ -641,6 +649,7 @@ ngx_create_paths(ngx_cycle_t *cycle, ngx_uid_t user)
             }
         }
 
+        //目录权限位对User没有RWX权限，则设置
         if ((fi.st_mode & (S_IRUSR|S_IWUSR|S_IXUSR))
                                                   != (S_IRUSR|S_IWUSR|S_IXUSR))
         {

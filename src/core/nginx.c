@@ -63,7 +63,7 @@ static ngx_command_t  ngx_core_commands[] = {
 
     { ngx_string("pid"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
-      ngx_con_set_str_slot,
+      ngx_conf_set_str_slot,
       0,
       offsetof(ngx_core_conf_t, pid),
       NULL },

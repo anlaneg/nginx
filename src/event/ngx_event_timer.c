@@ -19,6 +19,7 @@ static ngx_rbtree_node_t  ngx_event_timer_sentinel;
  * a minimum timer value only
  */
 
+//timer初始化
 ngx_int_t
 ngx_event_timer_init(ngx_log_t *log)
 {

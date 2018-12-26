@@ -80,6 +80,7 @@ ngx_str_t  ngx_http_html_default_types[] = {
 };
 
 
+//处理http块配置
 static ngx_command_t  ngx_http_commands[] = {
 
     { ngx_string("http"),
@@ -1655,6 +1656,7 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
             continue;
         }
 
+        //添加addrs
         ls = ngx_http_add_listening(cf, &addr[i]);
         if (ls == NULL) {
             return NGX_ERROR;

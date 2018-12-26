@@ -16,6 +16,7 @@ ngx_os_io_t  ngx_io;
 static void ngx_drain_connections(ngx_cycle_t *cycle);
 
 
+//添加需要监听的地址
 ngx_listening_t *
 ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     socklen_t socklen)
@@ -25,11 +26,13 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     struct sockaddr  *sa;
     u_char            text[NGX_SOCKADDR_STRLEN];
 
+    //创建一个空的listening结构
     ls = ngx_array_push(&cf->cycle->listening);
     if (ls == NULL) {
         return NULL;
     }
 
+    //填充listening
     ngx_memzero(ls, sizeof(ngx_listening_t));
 
     sa = ngx_palloc(cf->pool, socklen);
@@ -42,9 +45,11 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
     ls->sockaddr = sa;
     ls->socklen = socklen;
 
+    //地址字符串转换
     len = ngx_sock_ntop(sa, socklen, text, NGX_SOCKADDR_STRLEN, 1);
     ls->addr_text.len = len;
 
+    //设置最大地址长度
     switch (ls->sockaddr->sa_family) {
 #if (NGX_HAVE_INET6)
     case AF_INET6:
@@ -65,6 +70,7 @@ ngx_create_listening(ngx_conf_t *cf, struct sockaddr *sockaddr,
         break;
     }
 
+    //填充addr_text
     ls->addr_text.data = ngx_pnalloc(cf->pool, len);
     if (ls->addr_text.data == NULL) {
         return NULL;
@@ -1089,7 +1095,7 @@ ngx_close_listening_sockets(ngx_cycle_t *cycle)
     cycle->listening.nelts = 0;
 }
 
-
+//分配一个connection
 ngx_connection_t *
 ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
 {
@@ -1130,15 +1136,18 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
     ngx_cycle->free_connection_n--;
 
     if (ngx_cycle->files && ngx_cycle->files[s] == NULL) {
+        //设置s对应的connection
         ngx_cycle->files[s] = c;
     }
 
+    //保存read,write
     rev = c->read;
     wev = c->write;
 
     //清空connect
     ngx_memzero(c, sizeof(ngx_connection_t));
 
+    //还原read,write
     c->read = rev;
     c->write = wev;
     c->fd = s;

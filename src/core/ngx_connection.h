@@ -18,10 +18,11 @@ typedef struct ngx_listening_s  ngx_listening_t;
 struct ngx_listening_s {
     ngx_socket_t        fd;//需要监听的fd
 
-    struct sockaddr    *sockaddr;
+    struct sockaddr    *sockaddr;//需要监听的地址
+    //需要监听的地址长度
     socklen_t           socklen;    /* size of sockaddr */
-    size_t              addr_text_max_len;
-    ngx_str_t           addr_text;
+    size_t              addr_text_max_len;//字符串格式地址端口最大长度
+    ngx_str_t           addr_text;//字符串格式的地址端口
 
     int                 type;
 
@@ -49,7 +50,7 @@ struct ngx_listening_s {
     ngx_msec_t          post_accept_timeout;
 
     ngx_listening_t    *previous;
-    ngx_connection_t   *connection;
+    ngx_connection_t   *connection;//listening对应的connection
 
     ngx_rbtree_t        rbtree;
     ngx_rbtree_node_t   sentinel;
@@ -122,8 +123,10 @@ typedef enum {
 
 
 struct ngx_connection_s {
-    void               *data;
+    void               *data;//1.指向下一个connection,用于串成连
+    //此连接对应的读事件handler空间
     ngx_event_t        *read;
+    //此连接对应的写事件handler空间（仅为空间，非真实事件，由相应标记位确定是读或者写或两者）
     ngx_event_t        *write;
 
     ngx_socket_t        fd;//连接对应的fd
@@ -141,6 +144,7 @@ struct ngx_connection_s {
 
     ngx_pool_t         *pool;
 
+    //为SOCK_STREAM时，走ngx_event_accept
     int                 type;
 
     struct sockaddr    *sockaddr;

@@ -120,7 +120,7 @@ static ngx_str_t  event_core_name = ngx_string("event_core");
 
 static ngx_command_t  ngx_event_core_commands[] = {
 
-    { ngx_string("worker_connections"),
+    { ngx_string("worker_connections"),//配置单个woker的静态最大连接数
       NGX_EVENT_CONF|NGX_CONF_TAKE1,
       ngx_event_connections,
       0,
@@ -203,7 +203,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         flags = 0;
 
     } else {
-    		//查找首个待处理timer的过期时间
+        //查找首个待处理timer的过期时间
         timer = ngx_event_find_timer();
         flags = NGX_UPDATE_TIME;
 
@@ -258,7 +258,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     }
 
     if (delta) {
-    		//定时器事件触发
+    	//定时器事件触发
         ngx_event_expire_timers();
     }
 
@@ -611,7 +611,7 @@ ngx_timer_signal_handler(int signo)
 
 #endif
 
-
+//初始化listening配置，将其对应的fd加入poll框架
 static ngx_int_t
 ngx_event_process_init(ngx_cycle_t *cycle)
 {
@@ -655,6 +655,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
     for (m = 0; cycle->modules[m]; m++) {
         if (cycle->modules[m]->type != NGX_EVENT_MODULE) {
+            //跳过非event模块
             continue;
         }
 
@@ -702,14 +703,17 @@ ngx_event_process_init(ngx_cycle_t *cycle)
     if (ngx_event_flags & NGX_USE_FD_EVENT) {
         struct rlimit  rlmt;
 
+        //读取文件总数限制
         if (getrlimit(RLIMIT_NOFILE, &rlmt) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "getrlimit(RLIMIT_NOFILE) failed");
             return NGX_ERROR;
         }
 
+        //置可打开的文件
         cycle->files_n = (ngx_uint_t) rlmt.rlim_cur;
 
+        //增加文件数
         cycle->files = ngx_calloc(sizeof(ngx_connection_t *) * cycle->files_n,
                                   cycle->log);
         if (cycle->files == NULL) {
@@ -728,6 +732,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
+    //申请配置数量(connection_n)个连接池
     cycle->connections =
         ngx_alloc(sizeof(ngx_connection_t) * cycle->connection_n, cycle->log);
     if (cycle->connections == NULL) {
@@ -736,6 +741,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
     c = cycle->connections;
 
+    //读事件池
     cycle->read_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n,
                                    cycle->log);
     if (cycle->read_events == NULL) {
@@ -748,6 +754,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         rev[i].instance = 1;
     }
 
+    //初始化写事件池
     cycle->write_events = ngx_alloc(sizeof(ngx_event_t) * cycle->connection_n,
                                     cycle->log);
     if (cycle->write_events == NULL) {
@@ -759,6 +766,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         wev[i].closed = 1;
     }
 
+    //初始化所有connection，并串成链
     i = cycle->connection_n;
     next = NULL;
 
@@ -766,6 +774,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         i--;
 
         c[i].data = next;
+        //为每个connection设置read,write handler空间
         c[i].read = &cycle->read_events[i];
         c[i].write = &cycle->write_events[i];
         c[i].fd = (ngx_socket_t) -1;
@@ -773,11 +782,13 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         next = &c[i];
     } while (i);
 
+    //将connections置于空闲链上
     cycle->free_connections = next;
     cycle->free_connection_n = cycle->connection_n;
 
     /* for each listening socket */
 
+    //针对每一个listening,分配对应的connection
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
 
@@ -802,7 +813,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         rev = c->read;
 
         rev->log = c->log;
-        rev->accept = 1;
+        rev->accept = 1;//被监听socket，需要存入accept队列
 
 #if (NGX_HAVE_DEFERRED_ACCEPT)
         rev->deferred_accept = ls[i].deferred_accept;
@@ -866,7 +877,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #else
 
-        //设置此事件处理函数为(ngx_event_accept)
+        //如果为sock_stream,则设置此事件处理函数为(ngx_event_accept)
         rev->handler = (c->type == SOCK_STREAM) ? ngx_event_accept
                                                 : ngx_event_recvmsg;
 
@@ -902,6 +913,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
+        //将此event添加至poll里，可读取时，调用rev->handler
         if (ngx_add_event(rev, NGX_READ_EVENT, 0) == NGX_ERROR) {
             return NGX_ERROR;
         }
@@ -1026,7 +1038,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
+//设置event连接的最大值:每一个worker进程能并发处理（发起）的最大连接数
 static char *
 ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1034,11 +1046,13 @@ ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_str_t  *value;
 
+    //已设置，重复配置报错
     if (ecf->connections != NGX_CONF_UNSET_UINT) {
         return "is duplicate";
     }
 
     value = cf->args->elts;
+    //解析connections数值，过大时，报错
     ecf->connections = ngx_atoi(value[1].data, value[1].len);
     if (ecf->connections == (ngx_uint_t) NGX_ERROR) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -1047,6 +1061,7 @@ ngx_event_connections(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    //设置cycle支持的最大连接数
     cf->cycle->connection_n = ecf->connections;
 
     return NGX_CONF_OK;

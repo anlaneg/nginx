@@ -36,7 +36,7 @@ ngx_int_t        ngx_last_process;
 ngx_process_t    ngx_processes[NGX_MAX_PROCESSES];
 
 
-//信号处理函数
+//信号处理函数(将对应的信号均引流到ngx_signal_handler处理函数）
 ngx_signal_t  signals[] = {
     { ngx_signal_value(NGX_RECONFIGURE_SIGNAL),
       "SIG" ngx_value(NGX_RECONFIGURE_SIGNAL),
@@ -364,6 +364,7 @@ ngx_signal_handler(int signo, siginfo_t *siginfo, void *ucontext)
 
         case ngx_signal_value(NGX_TERMINATE_SIGNAL):
         case SIGINT:
+        		//收到中断信号，进程退出
             ngx_terminate = 1;
             action = ", exiting";
             break;
@@ -375,11 +376,13 @@ ngx_signal_handler(int signo, siginfo_t *siginfo, void *ucontext)
             }
             break;
 
+        //收到重新配置信号，标记需要重配置
         case ngx_signal_value(NGX_RECONFIGURE_SIGNAL):
             ngx_reconfigure = 1;
             action = ", reconfiguring";
             break;
 
+        //收到重新打开信号，标记需要reopen
         case ngx_signal_value(NGX_REOPEN_SIGNAL):
             ngx_reopen = 1;
             action = ", reopening logs";
@@ -436,6 +439,7 @@ ngx_signal_handler(int signo, siginfo_t *siginfo, void *ucontext)
 
         case ngx_signal_value(NGX_TERMINATE_SIGNAL):
         case SIGINT:
+        		//收到中断信号，退出进程
             ngx_terminate = 1;
             action = ", exiting";
             break;
@@ -648,8 +652,10 @@ ngx_os_signal_process(ngx_cycle_t *cycle, char *name, ngx_pid_t pid)
 {
     ngx_signal_t  *sig;
 
+    //将字符串格式的sig转换为数字信号
     for (sig = signals; sig->signo != 0; sig++) {
         if (ngx_strcmp(name, sig->name) == 0) {
+        		//向进程发送信号
             if (kill(pid, sig->signo) != -1) {
                 return 0;
             }

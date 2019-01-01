@@ -49,7 +49,7 @@ struct ngx_cycle_s {
     ngx_connection_t         *free_connections;//指向空闲的连接
     ngx_uint_t                free_connection_n;//空闲连接数
 
-    //当前的模块数组
+    //当前的模块数组（每个cycle均有一块独享的空间）
     ngx_module_t            **modules;
     //当前加载的模块数
     ngx_uint_t                modules_n;
@@ -76,7 +76,7 @@ struct ngx_cycle_s {
     ngx_event_t              *read_events;//读事件（与连接池一样大）
     ngx_event_t              *write_events;//写事件（与连接池一样大）
 
-    ngx_cycle_t              *old_cycle;
+    ngx_cycle_t              *old_cycle;//指向由哪个cycle创建而来
 
     //配置文件路径
     ngx_str_t                 conf_file;

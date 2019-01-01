@@ -103,6 +103,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
                       "sigprocmask() failed");
     }
 
+    //清空set
     sigemptyset(&set);
 
 
@@ -118,12 +119,14 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
         exit(2);
     }
 
+    //设置title,参数
     p = ngx_cpymem(title, master_process, sizeof(master_process) - 1);
     for (i = 0; i < ngx_argc; i++) {
         *p++ = ' ';
         p = ngx_cpystrn(p, (u_char *) ngx_argv[i], size);
     }
 
+    //设置进程名称
     ngx_setproctitle(title);
 
 
@@ -313,7 +316,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
         //事件及timer处理（正常业务函数）
         ngx_process_events_and_timers(cycle);
 
-        //如果进程需要终止，则调用exit_process函数
+        //如果进程需要终止，则调用exit_process函数（信号触发）
         if (ngx_terminate || ngx_quit) {
 
             for (i = 0; cycle->modules[i]; i++) {
@@ -326,7 +329,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
             ngx_master_process_exit(cycle);
         }
 
-        //需要重新配置nginx
+        //需要重新配置nginx（由信号触发）
         if (ngx_reconfigure) {
             ngx_reconfigure = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reconfiguring");
@@ -341,7 +344,7 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
             ngx_cycle = cycle;
         }
 
-        //重新打开已打开的文件
+        //重新打开已打开的文件（由信号触发）
         if (ngx_reopen) {
             ngx_reopen = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");

@@ -294,14 +294,17 @@ main(int argc, char *const *argv)
 
     ngx_slab_sizes_init();
 
+    //继承通过环境变量指定的sockets
     if (ngx_add_inherited_sockets(&init_cycle) != NGX_OK) {
         return 1;
     }
 
+    //模块化初始化前准备
     if (ngx_preinit_modules() != NGX_OK) {
         return 1;
     }
 
+    //通过init_cycle创建cycle
     cycle = ngx_init_cycle(&init_cycle);
     if (cycle == NULL) {
         if (ngx_test_config) {
@@ -340,7 +343,7 @@ main(int argc, char *const *argv)
         return 0;
     }
 
-    //配置了信号，针对子进程进行信号处理（加载配置，退出等）
+    //配置了信号，针对pid文件中记录的pid进行信号发送（加载配置，退出等）
     if (ngx_signal) {
         return ngx_signal_process(cycle, ngx_signal);
     }
@@ -362,6 +365,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
+    //daemon处理
     if (!ngx_inherited && ccf->daemon) {
         if (ngx_daemon(cycle->log) != NGX_OK) {
             return 1;
@@ -376,14 +380,17 @@ main(int argc, char *const *argv)
 
 #endif
 
+    //创建pid文件
     if (ngx_create_pidfile(&ccf->pid, cycle->log) != NGX_OK) {
         return 1;
     }
 
+    //stderr日志重定向
     if (ngx_log_redirect_stderr(cycle) != NGX_OK) {
         return 1;
     }
 
+    //如果非stderr,则关闭（此时stderr已重向给log了）
     if (log->file->fd != ngx_stderr) {
         if (ngx_close_file(log->file->fd) == NGX_FILE_ERROR) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
@@ -393,10 +400,13 @@ main(int argc, char *const *argv)
 
     ngx_use_stderr = 0;
 
+    //依据不同的进程方式，使用不同的处理函数
     if (ngx_process == NGX_PROCESS_SINGLE) {
+    		//单进程处理
         ngx_single_process_cycle(cycle);
 
     } else {
+    		//多进程处理
         ngx_master_process_cycle(cycle);
     }
 
@@ -469,7 +479,7 @@ ngx_show_version_info(void)
 }
 
 
-//添加需要继承的sock fd
+//添加需要通过环境变量继承的sock fd
 static ngx_int_t
 ngx_add_inherited_sockets(ngx_cycle_t *cycle)
 {

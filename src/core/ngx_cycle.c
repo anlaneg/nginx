@@ -38,6 +38,7 @@ static ngx_connection_t  dumb;
 /* STUB */
 
 
+//通过old_cycle创建一个cycle变量
 ngx_cycle_t *
 ngx_init_cycle(ngx_cycle_t *old_cycle)
 {
@@ -235,6 +236,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
     }
 
 
+    //针对cycle的所有modules,首先调用create_conf初始化配置结构体（内存申请，初始化等）
     for (i = 0; cycle->modules[i]; i++) {
     		//跳过core module
         if (cycle->modules[i]->type != NGX_CORE_MODULE) {
@@ -307,7 +309,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                        cycle->conf_file.data);
     }
 
-    //初始化core module的配置
+    //初始化core module的配置（通过init_conf完成配置结构体初始化）
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->type != NGX_CORE_MODULE) {
             continue;
@@ -649,6 +651,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     pool->log = cycle->log;
 
+    //通过init_module回调，完成module初始化
     if (ngx_init_modules(cycle) != NGX_OK) {
         /* fatal */
         exit(1);
@@ -1060,7 +1063,7 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
         return NGX_ERROR;
     }
 
-    //
+    //向pid文件中写入pid编号
     if (!ngx_test_config) {
         len = ngx_snprintf(pid, NGX_INT64_LEN + 2, "%P%N", ngx_pid) - pid;
 
@@ -1094,7 +1097,7 @@ ngx_delete_pidfile(ngx_cycle_t *cycle)
     }
 }
 
-
+//通过读取pid获得pid编号，向pid发送信号sig
 ngx_int_t
 ngx_signal_process(ngx_cycle_t *cycle, char *sig)
 {
@@ -1110,9 +1113,11 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
 
     ngx_memzero(&file, sizeof(ngx_file_t));
 
+    //文件为pid文件
     file.name = ccf->pid;
     file.log = cycle->log;
 
+    //打开pid文件
     file.fd = ngx_open_file(file.name.data, NGX_FILE_RDONLY,
                             NGX_FILE_OPEN, NGX_FILE_DEFAULT_ACCESS);
 
@@ -1122,8 +1127,10 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
         return 1;
     }
 
+    //自pid文件中读取一个uint64整数字符串长度 + 2长度
     n = ngx_read_file(&file, buf, NGX_INT64_LEN + 2, 0);
 
+    //读取pid文件失败处理
     if (ngx_close_file(file.fd) == NGX_FILE_ERROR) {
         ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                       ngx_close_file_n " \"%s\" failed", file.name.data);
@@ -1133,10 +1140,13 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
         return 1;
     }
 
+    //trim掉结尾的'\r','\n'
     while (n-- && (buf[n] == CR || buf[n] == LF)) { /* void */ }
 
+    //将buf中的整数字符串转换为pid编号
     pid = ngx_atoi(buf, ++n);
 
+    //转换失败，报错
     if (pid == (ngx_pid_t) NGX_ERROR) {
         ngx_log_error(NGX_LOG_ERR, cycle->log, 0,
                       "invalid PID number \"%*s\" in \"%s\"",
@@ -1144,6 +1154,7 @@ ngx_signal_process(ngx_cycle_t *cycle, char *sig)
         return 1;
     }
 
+    //向进程pid发送信号sig
     return ngx_os_signal_process(cycle, sig, pid);
 
 }

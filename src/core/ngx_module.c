@@ -17,7 +17,7 @@ static ngx_uint_t ngx_module_index(ngx_cycle_t *cycle);
 static ngx_uint_t ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type,
     ngx_uint_t index);
 
-//支持的模块的总数
+//支持的模块的最大总数（含动态模块）
 ngx_uint_t         ngx_max_module;
 //模块总数
 static ngx_uint_t  ngx_modules_n;
@@ -41,6 +41,7 @@ ngx_preinit_modules(void)
 }
 
 
+//初始化cycle独享的modules空间
 ngx_int_t
 ngx_cycle_modules(ngx_cycle_t *cycle)
 {
@@ -66,6 +67,7 @@ ngx_cycle_modules(ngx_cycle_t *cycle)
 }
 
 
+//通过init_module初始化cycle的所有modules
 ngx_int_t
 ngx_init_modules(ngx_cycle_t *cycle)
 {

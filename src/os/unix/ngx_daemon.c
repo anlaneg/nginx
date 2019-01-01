@@ -8,7 +8,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+//将进程处理为daemon
 ngx_int_t
 ngx_daemon(ngx_log_t *log)
 {

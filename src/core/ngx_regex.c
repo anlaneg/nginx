@@ -282,7 +282,7 @@ ngx_pcre_free_studies(void *data)
 
 #endif
 
-
+//正则表达式模块初始化
 static ngx_int_t
 ngx_regex_module_init(ngx_cycle_t *cycle)
 {

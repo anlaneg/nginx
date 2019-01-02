@@ -220,7 +220,7 @@
 
 
 struct ngx_module_s {
-    ngx_uint_t            ctx_index;
+    ngx_uint_t            ctx_index;//context编号（例如所有event有一组编号）
     ngx_uint_t            index;//module编号
 
     char                 *name;//module名称

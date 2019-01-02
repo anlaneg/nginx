@@ -83,7 +83,7 @@ static ngx_command_t  ngx_events_commands[] = {
 
     { ngx_string("events"),
       NGX_MAIN_CONF|NGX_CONF_BLOCK|NGX_CONF_NOARGS,
-      ngx_events_block,
+      ngx_events_block,//解析events块配置
       0,
       0,
       NULL },
@@ -960,7 +960,7 @@ ngx_send_lowat(ngx_connection_t *c, size_t lowat)
     return NGX_OK;
 }
 
-
+//解析events块配置
 static char *
 ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -990,7 +990,9 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     *(void **) conf = ctx;
 
+    //申请配置结构（每个event通过ctx_index进行初始化）
     for (i = 0; cf->cycle->modules[i]; i++) {
+    		//跳过非event模块
         if (cf->cycle->modules[i]->type != NGX_EVENT_MODULE) {
             continue;
         }
@@ -1011,6 +1013,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     cf->module_type = NGX_EVENT_MODULE;
     cf->cmd_type = NGX_EVENT_CONF;
 
+    //解析配置文件events对应的块参数
     rv = ngx_conf_parse(cf, NULL);
 
     *cf = pcf;
@@ -1019,6 +1022,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return rv;
     }
 
+    //初始化event配置
     for (i = 0; cf->cycle->modules[i]; i++) {
         if (cf->cycle->modules[i]->type != NGX_EVENT_MODULE) {
             continue;
@@ -1092,12 +1096,14 @@ ngx_event_use(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
 
+    //遍历当前cycle所有modules,针对所有event module
     for (m = 0; cf->cycle->modules[m]; m++) {
         if (cf->cycle->modules[m]->type != NGX_EVENT_MODULE) {
             continue;
         }
 
         module = cf->cycle->modules[m]->ctx;
+        //选择名称与value[1]相同的module
         if (module->name->len == value[1].len) {
             if (ngx_strcmp(module->name->data, value[1].data) == 0) {
                 ecf->use = cf->cycle->modules[m]->ctx_index;

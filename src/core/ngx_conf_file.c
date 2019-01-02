@@ -237,10 +237,11 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
         }
 
     } else if (cf->conf_file->file.fd != NGX_INVALID_FILE) {
-
+    		//没有给出文件名，且fd有值，则解释block
         type = parse_block;
 
     } else {
+    		//没有给出文件名，且fd无值，则解析param
         type = parse_param;
     }
 
@@ -1096,7 +1097,7 @@ ngx_conf_log_error(ngx_uint_t level, ngx_conf_t *cf, ngx_err_t err,
                   cf->conf_file->file.name.data, cf->conf_file->line);
 }
 
-
+//通过cmd设置指定offset处的flags(0或者1）
 char *
 ngx_conf_set_flag_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {

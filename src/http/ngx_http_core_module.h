@@ -379,6 +379,7 @@ struct ngx_http_core_loc_conf_s {
     ngx_flag_t    client_body_in_single_buffer;
                                            /* client_body_in_singe_buffer */
     ngx_flag_t    internal;                /* internal */
+    //通过sendfile配置，设置0或者1
     ngx_flag_t    sendfile;                /* sendfile */
     ngx_flag_t    aio;                     /* aio */
     ngx_flag_t    aio_write;               /* aio_write */

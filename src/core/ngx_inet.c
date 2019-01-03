@@ -853,11 +853,12 @@ ngx_parse_inet_url(ngx_pool_t *pool, ngx_url_t *u)
             if (u->listen) {
 
                 /* test value as port only */
-
+            		//检查是否仅为端口
                 n = ngx_atoi(host, last - host);
 
                 if (n != NGX_ERROR) {
 
+                		//仅为port的情况
                     if (n < 1 || n > 65535) {
                         u->err = "invalid port";
                         return NGX_ERROR;

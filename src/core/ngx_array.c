@@ -8,7 +8,7 @@
 #include <ngx_config.h>
 #include <ngx_core.h>
 
-
+//创建array,每个元素大小为size,共n个元素
 ngx_array_t *
 ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size)
 {
@@ -19,6 +19,7 @@ ngx_array_create(ngx_pool_t *p, ngx_uint_t n, size_t size)
         return NULL;
     }
 
+    //数组初始化
     if (ngx_array_init(a, p, n, size) != NGX_OK) {
         return NULL;
     }

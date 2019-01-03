@@ -64,6 +64,7 @@ size_t ngx_strnlen(u_char *p, size_t n);
 
 #define ngx_strchr(s1, c)   strchr((const char *) s1, (int) c)
 
+//返回p中首个出现c字符的位置
 static ngx_inline u_char *
 ngx_strlchr(u_char *p, u_char *last, u_char c)
 {

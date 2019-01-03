@@ -15,7 +15,7 @@ static ngx_int_t ngx_conf_handler(ngx_conf_t *cf, ngx_int_t last);
 static ngx_int_t ngx_conf_read_token(ngx_conf_t *cf);
 static void ngx_conf_flush_files(ngx_cycle_t *cycle);
 
-
+//ngx配置文件中出现的include指令处理（非http)
 static ngx_command_t  ngx_conf_commands[] = {
 
     { ngx_string("include"),
@@ -297,7 +297,7 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
             }
         }
 
-        //此时的rc情况，如下注释示
+        //此时的rc情况，如下注释示，可解析命令，或者发现块start
         /* rc == NGX_OK || rc == NGX_CONF_BLOCK_START */
 
         if (cf->handler) {
@@ -307,16 +307,19 @@ ngx_conf_parse(ngx_conf_t *cf, ngx_str_t *filename)
              * "types { ... }" directive
              */
 
+        		//如果指明了handler,则不容许为block start
             if (rc == NGX_CONF_BLOCK_START) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "unexpected \"{\"");
                 goto failed;
             }
 
+            //调用回调，如果成功，则continue
             rv = (*cf->handler)(cf, NULL, cf->handler_conf);
             if (rv == NGX_CONF_OK) {
                 continue;
             }
 
+            //错误处理
             if (rv == NGX_CONF_ERROR) {
                 goto failed;
             }
@@ -891,7 +894,7 @@ ngx_conf_read_token(ngx_conf_t *cf)
     }
 }
 
-
+//处理配置文件include
 char *
 ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -905,6 +908,7 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, cf->log, 0, "include %s", file.data);
 
+    //取配置文件路径
     if (ngx_conf_full_name(cf->cycle, &file, 1) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
@@ -913,6 +917,7 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         ngx_log_debug1(NGX_LOG_DEBUG_CORE, cf->log, 0, "include %s", file.data);
 
+        //解析单include文件
         return ngx_conf_parse(cf, &file);
     }
 
@@ -930,6 +935,7 @@ ngx_conf_include(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     rv = NGX_CONF_OK;
 
+    //遍历匹配的所有配置文件，逐个解析
     for ( ;; ) {
         n = ngx_read_glob(&gl, &name);
 

@@ -277,6 +277,7 @@ static ngx_command_t  ngx_http_core_commands[] = {
       0,
       NULL },
 
+	  //处理listen指令
     { ngx_string("listen"),
       NGX_HTTP_SRV_CONF|NGX_CONF_1MORE,
       ngx_http_core_listen,
@@ -3070,7 +3071,7 @@ ngx_http_core_regex_location(ngx_conf_t *cf, ngx_http_core_loc_conf_t *clcf,
 #endif
 }
 
-
+//解析types块内的配置
 static char *
 ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -3079,6 +3080,7 @@ ngx_http_core_types(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     char        *rv;
     ngx_conf_t   save;
 
+    //为types申请内存
     if (clcf->types == NULL) {
         clcf->types = ngx_array_create(cf->pool, 64, sizeof(ngx_hash_key_t));
         if (clcf->types == NULL) {
@@ -3109,8 +3111,10 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
     value = cf->args->elts;
 
+    //types配置中遇到include指令
     if (ngx_strcmp(value[0].data, "include") == 0) {
         if (cf->args->nelts != 2) {
+        		//include指令必须含有两个参数
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "invalid number of arguments"
                                " in \"include\" directive");
@@ -3127,6 +3131,7 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
 
     *content_type = value[0];
 
+    //遍历context_type对应的所有后缀，全部加入到types中
     for (i = 1; i < cf->args->nelts; i++) {
 
         hash = ngx_hash_strlow(value[i].data, value[i].data, value[i].len);
@@ -3147,6 +3152,7 @@ ngx_http_core_type(ngx_conf_t *cf, ngx_command_t *dummy, void *conf)
         }
 
 
+        //clcf->types加入key(文件后缀），value(文件类型），hash(文件后缀对应的hash值）
         type = ngx_array_push(clcf->types);
         if (type == NULL) {
             return NGX_CONF_ERROR;
@@ -3746,7 +3752,7 @@ ngx_http_core_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
-
+//解析listen指令
 static char *
 ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -3801,6 +3807,7 @@ ngx_http_core_listen(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     for (n = 2; n < cf->args->nelts; n++) {
 
+    		//如果注明为默认server,则标记，并继续
         if (ngx_strcmp(value[n].data, "default_server") == 0
             || ngx_strcmp(value[n].data, "default") == 0)
         {

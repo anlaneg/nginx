@@ -30,9 +30,11 @@ int ngx_blocking(ngx_socket_t s);
 
 #else
 
+//设置为非阻塞
 #define ngx_nonblocking(s)  fcntl(s, F_SETFL, fcntl(s, F_GETFL) | O_NONBLOCK)
 #define ngx_nonblocking_n   "fcntl(O_NONBLOCK)"
 
+//设置为阻塞
 #define ngx_blocking(s)     fcntl(s, F_SETFL, fcntl(s, F_GETFL) & ~O_NONBLOCK)
 #define ngx_blocking_n      "fcntl(!O_NONBLOCK)"
 

@@ -131,6 +131,7 @@ struct ngx_connection_s {
 
     ngx_socket_t        fd;//连接对应的fd
 
+    //针对connection的收取，发送函数
     ngx_recv_pt         recv;
     ngx_send_pt         send;
     ngx_recv_chain_pt   recv_chain;
@@ -147,6 +148,7 @@ struct ngx_connection_s {
     //为SOCK_STREAM时，走ngx_event_accept
     int                 type;
 
+    //记录报文来源
     struct sockaddr    *sockaddr;
     socklen_t           socklen;
     ngx_str_t           addr_text;

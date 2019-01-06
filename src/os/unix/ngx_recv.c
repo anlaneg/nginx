@@ -9,7 +9,7 @@
 #include <ngx_core.h>
 #include <ngx_event.h>
 
-
+//unix读取函数
 ssize_t
 ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 {
@@ -66,6 +66,7 @@ ngx_unix_recv(ngx_connection_t *c, u_char *buf, size_t size)
 #endif
 
     do {
+    		//通过recv函数，读取fd并填充buf
         n = recv(c->fd, buf, size, 0);
 
         ngx_log_debug3(NGX_LOG_DEBUG_EVENT, c->log, 0,

@@ -434,6 +434,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 
 extern ngx_os_io_t  ngx_io;
 
+//读取函数
 #define ngx_recv             ngx_io.recv
 #define ngx_recv_chain       ngx_io.recv_chain
 #define ngx_udp_recv         ngx_io.udp_recv

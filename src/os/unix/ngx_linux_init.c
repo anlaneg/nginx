@@ -13,7 +13,7 @@ u_char  ngx_linux_kern_ostype[50];
 //kernel版本
 u_char  ngx_linux_kern_osrelease[50];
 
-
+//linux对应的io函数
 static ngx_os_io_t ngx_linux_io = {
     ngx_unix_recv,
     ngx_readv_chain,

@@ -63,14 +63,16 @@ ngx_event_accept(ngx_event_t *ev)
             s = accept(lc->fd, &sa.sockaddr, &socklen);
         }
 #else
-        //按入请求方sa.sockaddr
+        //接入请求方sa.sockaddr
         s = accept(lc->fd, &sa.sockaddr, &socklen);
 #endif
 
-        if (s == (ngx_socket_t) -1) {
+        //尝试着接入新的client失败
+        if (s == (ngx_socket_t) -1)
             err = ngx_socket_errno;
 
             if (err == NGX_EAGAIN) {
+            		//accept失败
                 ngx_log_debug0(NGX_LOG_DEBUG_EVENT, ev->log, err,
                                "accept() not ready");
                 return;
@@ -150,6 +152,7 @@ ngx_event_accept(ngx_event_t *ev)
             return;
         }
 
+        //流式连接
         c->type = SOCK_STREAM;
 
 #if (NGX_STAT_STUB)
@@ -172,6 +175,7 @@ ngx_event_accept(ngx_event_t *ev)
             return;
         }
 
+        //记录连接的源地址
         ngx_memcpy(c->sockaddr, &sa, socklen);
 
         log = ngx_palloc(c->pool, sizeof(ngx_log_t));
@@ -184,6 +188,7 @@ ngx_event_accept(ngx_event_t *ev)
 
         if (ngx_inherited_nonblocking) {
             if (ngx_event_flags & NGX_USE_IOCP_EVENT) {
+            		//设置s为阻塞失败，关闭connection
                 if (ngx_blocking(s) == -1) {
                     ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno,
                                   ngx_blocking_n " failed");
@@ -194,6 +199,7 @@ ngx_event_accept(ngx_event_t *ev)
 
         } else {
             if (!(ngx_event_flags & NGX_USE_IOCP_EVENT)) {
+            		//设置非阻塞失败
                 if (ngx_nonblocking(s) == -1) {
                     ngx_log_error(NGX_LOG_ALERT, ev->log, ngx_socket_errno,
                                   ngx_nonblocking_n " failed");

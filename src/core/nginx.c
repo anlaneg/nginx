@@ -75,6 +75,7 @@ static ngx_command_t  ngx_core_commands[] = {
       offsetof(ngx_core_conf_t, lock_file),
       NULL },
 
+      //设置工作进程数
     { ngx_string("worker_processes"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_set_worker_processes,
@@ -96,6 +97,7 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+      //设置进程优先级
     { ngx_string("worker_priority"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_TAKE1,
       ngx_set_priority,
@@ -103,6 +105,7 @@ static ngx_command_t  ngx_core_commands[] = {
       0,
       NULL },
 
+      //cpu亲昵性设置
     { ngx_string("worker_cpu_affinity"),
       NGX_MAIN_CONF|NGX_DIRECT_CONF|NGX_CONF_1MORE,
       ngx_set_cpu_affinity,
@@ -1340,7 +1343,7 @@ ngx_set_env(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
+//设置进程优先级
 static char *
 ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1349,6 +1352,7 @@ ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_str_t        *value;
     ngx_uint_t        n, minus;
 
+    //已配置
     if (ccf->priority != 0) {
         return "is duplicate";
     }
@@ -1368,6 +1372,7 @@ ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         minus = 0;
     }
 
+    //解析配置的优先级
     ccf->priority = ngx_atoi(&value[1].data[n], value[1].len - n);
     if (ccf->priority == NGX_ERROR) {
         return "invalid number";
@@ -1381,6 +1386,8 @@ ngx_set_priority(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 }
 
 
+//支持两种模式（auto时，指所有cpu绑定给进程,否则采用mask方式绑定给进程，容许用空格隔开）
+//例如"auto", 或者多个"1100 0001" “000011”
 static char *
 ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -1392,6 +1399,7 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_uint_t        i, n;
     ngx_cpuset_t     *mask;
 
+    //已配置cpu亲昵性
     if (ccf->cpu_affinity) {
         return "is duplicate";
     }
@@ -1406,8 +1414,10 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
+    //用户配置为auto
     if (ngx_strcmp(value[1].data, "auto") == 0) {
 
+        //auto参数后不容许再有其它参数
         if (cf->args->nelts > 3) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                                "invalid number of arguments in "
@@ -1417,6 +1427,7 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         ccf->cpu_affinity_auto = 1;
 
+        //将所有cpu均加入到mask中
         CPU_ZERO(&mask[0]);
         for (i = 0; i < (ngx_uint_t) ngx_min(ngx_ncpu, CPU_SETSIZE); i++) {
             CPU_SET(i, &mask[0]);
@@ -1440,27 +1451,32 @@ ngx_set_cpu_affinity(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         i = 0;
         CPU_ZERO(&mask[n - 1]);
 
+        //自配置尾部向头部退
         for (p = value[n].data + value[n].len - 1;
              p >= value[n].data;
              p--)
         {
             ch = *p;
 
+            //遇到空格继续退
             if (ch == ' ') {
                 continue;
             }
 
             i++;
 
+            //只接受0,1两个组成的掩码
             if (ch == '0') {
                 continue;
             }
 
             if (ch == '1') {
+                //将cpu i-1置入mask中
                 CPU_SET(i - 1, &mask[n - 1]);
                 continue;
             }
 
+            //字符格式有误
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
                           "invalid character \"%c\" in \"worker_cpu_affinity\"",
                           ch);
@@ -1585,6 +1601,7 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     file = value[1];
 
+    //获取文件名称
     if (ngx_conf_full_name(cf->cycle, &file, 0) != NGX_OK) {
         return NGX_CONF_ERROR;
     }
@@ -1594,7 +1611,7 @@ ngx_load_module(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return NGX_CONF_ERROR;
     }
 
-    //加载so文件
+    //加载so文件，生成handle
     handle = ngx_dlopen(file.data);
     if (handle == NULL) {
         ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,

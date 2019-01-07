@@ -429,6 +429,7 @@ ngx_event_init_conf(ngx_cycle_t *cycle, void *conf)
         return NGX_CONF_ERROR;
     }
 
+    //连接总数远小于listening数目，报错
     if (cycle->connection_n < cycle->listening.nelts + 1) {
 
         /*
@@ -788,7 +789,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
     /* for each listening socket */
 
-    //针对每一个listening,分配对应的connection
+    //针对每一个listening,分配一个对应的connection
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
 
@@ -798,6 +799,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         }
 #endif
 
+        //分配一个connection
         c = ngx_get_connection(ls[i].fd, cycle->log);
 
         if (c == NULL) {

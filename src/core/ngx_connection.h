@@ -24,7 +24,7 @@ struct ngx_listening_s {
     size_t              addr_text_max_len;//字符串格式地址端口最大长度
     ngx_str_t           addr_text;//字符串格式的地址端口
 
-    int                 type;
+    int                 type;//监听的类型，例如tcp
 
     int                 backlog;
     int                 rcvbuf;
@@ -40,7 +40,7 @@ struct ngx_listening_s {
 
     void               *servers;  /* array of ngx_http_in_addr_t, for example */
 
-    ngx_log_t           log;
+    ngx_log_t           log;//对应的log
     ngx_log_t          *logp;
 
     size_t              pool_size;
@@ -137,7 +137,7 @@ struct ngx_connection_s {
     ngx_recv_chain_pt   recv_chain;
     ngx_send_chain_pt   send_chain;
 
-    ngx_listening_t    *listening;
+    ngx_listening_t    *listening;//对应的listening
 
     off_t               sent;
 

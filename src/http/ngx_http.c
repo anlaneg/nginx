@@ -116,7 +116,7 @@ ngx_module_t  ngx_http_module = {
     NGX_MODULE_V1_PADDING
 };
 
-
+//解析http的块配置
 static char *
 ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
@@ -184,6 +184,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
      * of the all http modules
      */
 
+    //跳过非http模块
     for (m = 0; cf->cycle->modules[m]; m++) {
         if (cf->cycle->modules[m]->type != NGX_HTTP_MODULE) {
             continue;
@@ -217,6 +218,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     pcf = *cf;
     cf->ctx = ctx;
 
+    //http模块预配置
     for (m = 0; cf->cycle->modules[m]; m++) {
         if (cf->cycle->modules[m]->type != NGX_HTTP_MODULE) {
             continue;
@@ -233,6 +235,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     /* parse inside the http{} block */
 
+    //解析http的块配置
     cf->module_type = NGX_HTTP_MODULE;
     cf->cmd_type = NGX_HTTP_MAIN_CONF;
     rv = ngx_conf_parse(cf, NULL);

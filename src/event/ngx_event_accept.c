@@ -68,7 +68,7 @@ ngx_event_accept(ngx_event_t *ev)
 #endif
 
         //尝试着接入新的client失败
-        if (s == (ngx_socket_t) -1)
+        if (s == (ngx_socket_t) -1) {
             err = ngx_socket_errno;
 
             if (err == NGX_EAGAIN) {

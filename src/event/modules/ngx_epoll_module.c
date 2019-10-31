@@ -903,11 +903,10 @@ ngx_epoll_process_events(ngx_cycle_t *cycle, ngx_msec_t timer, ngx_uint_t flags)
             if (revents & EPOLLRDHUP) {
                 rev->pending_eof = 1;
             }
-
-            rev->available = 1;
 #endif
 
             rev->ready = 1;
+            rev->available = -1;
 
             //如果事件需要存入队列延迟处理，则按相应标记，存入相应队列
             if (flags & NGX_POST_EVENTS) {

@@ -241,8 +241,6 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
     }
 
     if (!ngx_queue_empty(&ngx_posted_next_events)) {
-        ngx_queue_add(&ngx_posted_events, &ngx_posted_next_events);
-        ngx_queue_init(&ngx_posted_next_events);
         timer = 0;
     }
 
@@ -270,6 +268,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
 
     //遍历并触发ngx_posted_events事件队列
     ngx_event_process_posted(cycle, &ngx_posted_events);
+    ngx_event_process_posted_next(cycle, &ngx_posted_next_events);
 }
 
 

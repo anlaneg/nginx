@@ -42,6 +42,7 @@
 #define NGX_HTTP_PATCH                     0x4000
 #define NGX_HTTP_TRACE                     0x8000
 
+/*connect类型*/
 #define NGX_HTTP_CONNECTION_CLOSE          1
 #define NGX_HTTP_CONNECTION_KEEP_ALIVE     2
 
@@ -166,8 +167,11 @@ typedef enum {
 
 
 typedef struct {
+	//http头部名称
     ngx_str_t                         name;
+    //头部字段在结构体中的偏移量
     ngx_uint_t                        offset;
+    //header字段的处理函数
     ngx_http_header_handler_pt        handler;
 } ngx_http_header_t;
 
@@ -235,10 +239,12 @@ typedef struct {
 
     ngx_array_t                       cookies;
 
+    /*http header中的host字段*/
     ngx_str_t                         server;
     off_t                             content_length_n;
     time_t                            keep_alive_n;
 
+    //连接方式(close,keep-alive)
     unsigned                          connection_type:2;
     unsigned                          chunked:1;
     unsigned                          msie:1;
@@ -392,7 +398,9 @@ struct ngx_http_request_s {
     ngx_pool_t                       *pool;
     ngx_buf_t                        *header_in;
 
+    /*输入的header*/
     ngx_http_headers_in_t             headers_in;
+    /*输出的header*/
     ngx_http_headers_out_t            headers_out;
 
     ngx_http_request_body_t          *request_body;
@@ -402,15 +410,15 @@ struct ngx_http_request_s {
     ngx_msec_t                        start_msec;
 
     ngx_uint_t                        method;//解析的method,例如GET,POST
-    ngx_uint_t                        http_version;//版本号
+    ngx_uint_t                        http_version;//版本号,“主版本*1000+次版本号”
 
-    ngx_str_t                         request_line;
+    ngx_str_t                         request_line;/*http请求行*/
     ngx_str_t                         uri;
     ngx_str_t                         args;
     ngx_str_t                         exten;
     ngx_str_t                         unparsed_uri;
 
-    ngx_str_t                         method_name;
+    ngx_str_t                         method_name;/*http请求行方法名*/
     ngx_str_t                         http_protocol;
     ngx_str_t                         schema;
 
@@ -561,15 +569,19 @@ struct ngx_http_request_s {
 
     /* used to parse HTTP headers */
 
-    ngx_uint_t                        state;
+    ngx_uint_t                        state;/*当前识别状态*/
 
     ngx_uint_t                        header_hash;
     ngx_uint_t                        lowcase_index;
     u_char                            lowcase_header[NGX_HTTP_LC_HEADER_LEN];
 
+    /*指明header name起始位置*/
     u_char                           *header_name_start;
+    /*指明header name结束位置*/
     u_char                           *header_name_end;
+    /*指明header value起始位置*/
     u_char                           *header_start;
+    /*指明header value终止位置*/
     u_char                           *header_end;
 
     /*
@@ -577,20 +589,28 @@ struct ngx_http_request_s {
      * via ngx_http_ephemeral_t
      */
 
+    /*请求行uri起始位置*/
     u_char                           *uri_start;
+    /*请求行uri结束位置*/
     u_char                           *uri_end;
     u_char                           *uri_ext;
     u_char                           *args_start;
+    /*请求起始位置*/
     u_char                           *request_start;
     u_char                           *request_end;
     u_char                           *method_end;
+    /*请求行模式起始位置*/
     u_char                           *schema_start;
+    /*请求行模式终止位置*/
     u_char                           *schema_end;
+    /*请求行服务器地址起始位置*/
     u_char                           *host_start;
+    /*请求行服务器地址终止位置*/
     u_char                           *host_end;
     u_char                           *port_start;
     u_char                           *port_end;
 
+    //http主次版本号
     unsigned                          http_minor:16;
     unsigned                          http_major:16;
 };

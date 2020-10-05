@@ -59,6 +59,7 @@ ngx_http_static_handler(ngx_http_request_t *r)
     ngx_open_file_info_t       of;
     ngx_http_core_loc_conf_t  *clcf;
 
+    /*只处理get,head,post三种method*/
     if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD|NGX_HTTP_POST))) {
         return NGX_HTTP_NOT_ALLOWED;
     }
@@ -282,6 +283,7 @@ ngx_http_static_init(ngx_conf_t *cf)
         return NGX_ERROR;
     }
 
+    /*设置静态handler*/
     *h = ngx_http_static_handler;
 
     return NGX_OK;

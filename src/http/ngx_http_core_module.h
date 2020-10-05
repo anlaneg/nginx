@@ -154,6 +154,7 @@ typedef struct {
 
     ngx_http_phase_engine_t    phase_engine;
 
+    /*容许请求可包含的header字段及其填充函数对应的hashtable*/
     ngx_hash_t                 headers_in_hash;
 
     ngx_hash_t                 variables_hash;

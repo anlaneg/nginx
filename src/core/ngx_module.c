@@ -19,7 +19,7 @@ static ngx_uint_t ngx_module_ctx_index(ngx_cycle_t *cycle, ngx_uint_t type,
 
 //支持的模块的最大总数（含动态模块）
 ngx_uint_t         ngx_max_module;
-//模块总数
+//系统已有模块总数
 static ngx_uint_t  ngx_modules_n;
 
 
@@ -29,6 +29,7 @@ ngx_preinit_modules(void)
 {
     ngx_uint_t  i;
 
+    /*填充各module对应的index及module名称*/
     for (i = 0; ngx_modules[i]; i++) {
         ngx_modules[i]->index = i;
         ngx_modules[i]->name = ngx_module_names[i];

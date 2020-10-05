@@ -100,6 +100,7 @@ static uint32_t  usual[] = {
 
 /* gcc, icc, msvc and others compile these switches as an jump table */
 
+//识别请求行 "GET /abc HTTP/1.0"
 ngx_int_t
 ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
 {
@@ -134,7 +135,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
         sw_almost_done
     } state;
 
-    state = r->state;
+    state = r->state;/*上次请求解析状态*/
 
     for (p = b->pos; p < b->last; p++) {
         ch = *p;
@@ -149,19 +150,23 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
                 break;
             }
 
+            /*字符必须为大写*/
             if ((ch < 'A' || ch > 'Z') && ch != '_' && ch != '-') {
                 return NGX_HTTP_PARSE_INVALID_METHOD;
             }
 
+            //进入sw_method状态
             state = sw_method;
             break;
 
-        case sw_method://解析method字段
+        case sw_method:
+        		//解析method字段
             if (ch == ' ') {
             	//循环直到遇到空格，再向下处理,从而完成method解析
                 r->method_end = p - 1;
                 m = r->request_start;
 
+                //按不同长度进行method识别
                 switch (p - m) {
 
                 case 3:
@@ -267,6 +272,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
                     break;
                 }
 
+                /*完成method识别，准备uri识别*/
                 state = sw_spaces_before_uri;
                 break;
             }
@@ -280,14 +286,15 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
         /* space* before URI */
         case sw_spaces_before_uri:
 
-        	//解析uri
+        		//解析uri
             if (ch == '/') {
                 r->uri_start = p;
                 state = sw_after_slash_in_uri;
                 break;
             }
 
-            c = (u_char) (ch | 0x20);
+            /*非/目录起始，尝试http://www.example.com形式识别*/
+            c = (u_char) (ch | 0x20);/*将字符转为小写*/
             if (c >= 'a' && c <= 'z') {
                 r->schema_start = p;
                 state = sw_schema;
@@ -296,7 +303,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
 
             switch (ch) {
             case ' ':
-                break;
+                break;/*容许uri前有多个空格*/
             default:
                 return NGX_HTTP_PARSE_INVALID_REQUEST;
             }
@@ -316,6 +323,7 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
 
             switch (ch) {
             case ':':
+            		/*模式符识别结束，开始识别多个'/'*/
                 r->schema_end = p;
                 state = sw_schema_slash;
                 break;
@@ -376,9 +384,11 @@ ngx_http_parse_request_line(ngx_http_request_t *r, ngx_buf_t *b)
 
             switch (ch) {
             case ':':
+            		/*遇到':'号，表示接下来是端口号信息*/
                 state = sw_port;
                 break;
             case '/':
+            		/*此时host结束*/
                 r->uri_start = p;
                 state = sw_after_slash_in_uri;
                 break;
@@ -843,7 +853,7 @@ done:
     return NGX_OK;
 }
 
-
+/*解析一个http header line*/
 ngx_int_t
 ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
     ngx_uint_t allow_underscores)
@@ -898,6 +908,7 @@ ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
             default:
                 state = sw_name;
 
+                /*将字符ch转为小写c*/
                 c = lowcase[ch];
 
                 if (c) {
@@ -960,6 +971,7 @@ ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
             }
 
             if (ch == ':') {
+            		/*遇到':'指明header_name结束*/
                 r->header_name_end = p;
                 state = sw_space_before_value;
                 break;
@@ -1002,6 +1014,7 @@ ngx_http_parse_header_line(ngx_http_request_t *r, ngx_buf_t *b,
         case sw_space_before_value:
             switch (ch) {
             case ' ':
+            		/*容许value前有多个空格*/
                 break;
             case CR:
                 r->header_start = p;
@@ -1637,6 +1650,7 @@ args:
 }
 
 
+//识别http协议状态行,常见内容 "HTTP/1.0 200 OK"
 ngx_int_t
 ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
     ngx_http_status_t *status)
@@ -1644,17 +1658,17 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
     u_char   ch;
     u_char  *p;
     enum {
-        sw_start = 0,
-        sw_H,
-        sw_HT,
-        sw_HTT,
-        sw_HTTP,
-        sw_first_major_digit,
-        sw_major_digit,
-        sw_first_minor_digit,
-        sw_minor_digit,
-        sw_status,
-        sw_space_after_status,
+        sw_start = 0,//识别'H'
+        sw_H,//识别'T'
+        sw_HT,//识别'T'
+        sw_HTT,//识别'P'
+        sw_HTTP,//完成'HTTP'识别，识别'/'
+        sw_first_major_digit,//识别首个主版本号'HTTP/1
+        sw_major_digit,//识别非首个主版本号
+        sw_first_minor_digit,//识别首个次版本号
+        sw_minor_digit,//识别非首个次版本号
+        sw_status,//遇到空格，识别status
+        sw_space_after_status,//完成状态code识别
         sw_status_text,
         sw_almost_done
     } state;
@@ -1723,6 +1737,7 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
                 return NGX_ERROR;
             }
 
+            /*填充http首个主版本号数字*/
             r->http_major = ch - '0';
             state = sw_major_digit;
             break;
@@ -1730,6 +1745,7 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
         /* the major HTTP version or dot */
         case sw_major_digit:
             if (ch == '.') {
+            		/*遇到'.',开始识别首个从版本号*/
                 state = sw_first_minor_digit;
                 break;
             }
@@ -1738,10 +1754,12 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
                 return NGX_ERROR;
             }
 
+            /*主版本号不能大于99*/
             if (r->http_major > 99) {
                 return NGX_ERROR;
             }
 
+            /*识别第二个主版本号*/
             r->http_major = r->http_major * 10 + (ch - '0');
             break;
 
@@ -1758,6 +1776,7 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
         /* the minor HTTP version or the end of the request line */
         case sw_minor_digit:
             if (ch == ' ') {
+            		//遇到空格，完成次版本号识别
                 state = sw_status;
                 break;
             }
@@ -1776,6 +1795,7 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
         /* HTTP status code */
         case sw_status:
             if (ch == ' ') {
+            		/*容许遇到多个空格*/
                 break;
             }
 
@@ -1785,6 +1805,7 @@ ngx_http_parse_status_line(ngx_http_request_t *r, ngx_buf_t *b,
 
             status->code = status->code * 10 + (ch - '0');
 
+            /*遇到状态count数量超过3，跳至status后space识别*/
             if (++status->count == 3) {
                 state = sw_space_after_status;
                 status->start = p - 2;

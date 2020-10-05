@@ -21,8 +21,8 @@ typedef struct {
 
 
 typedef struct {
-    ngx_hash_elt_t  **buckets;
-    ngx_uint_t        size;
+    ngx_hash_elt_t  **buckets;/*hash桶*/
+    ngx_uint_t        size;/*桶数*/
 } ngx_hash_t;
 
 
@@ -43,7 +43,7 @@ typedef ngx_uint_t (*ngx_hash_key_pt) (u_char *data, size_t len);
 
 
 typedef struct {
-    ngx_hash_t            hash;
+    ngx_hash_t            hash;/*hash表*/
     ngx_hash_wildcard_t  *wc_head;
     ngx_hash_wildcard_t  *wc_tail;
 } ngx_hash_combined_t;

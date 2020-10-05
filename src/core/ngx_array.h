@@ -37,7 +37,7 @@ void *ngx_array_push_n(ngx_array_t *a, ngx_uint_t n);
 
 //array初始化
 static ngx_inline ngx_int_t
-ngx_array_init(ngx_array_t *array, ngx_pool_t *pool, ngx_uint_t n, size_t size)
+ngx_array_init(ngx_array_t *array, ngx_pool_t *pool, ngx_uint_t n/*数组大小*/, size_t size/*元素大小*/)
 {
     /*
      * set "array->nelts" before "array->elts", otherwise MSVC thinks

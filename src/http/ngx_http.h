@@ -64,11 +64,11 @@ struct ngx_http_chunked_s {
 
 
 typedef struct {
-    ngx_uint_t           http_version;
-    ngx_uint_t           code;
+    ngx_uint_t           http_version;/*主版本*1000+次版本号*/
+    ngx_uint_t           code;/*状态码*/
     ngx_uint_t           count;
-    u_char              *start;
-    u_char              *end;
+    u_char              *start;/*状态码起始字符*/
+    u_char              *end;/*http状态码后面字段*/
 } ngx_http_status_t;
 
 

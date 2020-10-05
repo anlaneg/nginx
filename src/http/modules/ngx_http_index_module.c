@@ -113,6 +113,7 @@ ngx_http_index_handler(ngx_http_request_t *r)
         return NGX_DECLINED;
     }
 
+    /*只支持get,head,post三种方法*/
     if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD|NGX_HTTP_POST))) {
         return NGX_DECLINED;
     }

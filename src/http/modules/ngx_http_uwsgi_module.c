@@ -1186,6 +1186,7 @@ ngx_http_uwsgi_process_status_line(ngx_http_request_t *r)
 
     u = r->upstream;
 
+    /*识别http状态行*/
     rc = ngx_http_parse_status_line(r, &u->buffer, status);
 
     if (rc == NGX_AGAIN) {
@@ -1193,6 +1194,7 @@ ngx_http_uwsgi_process_status_line(ngx_http_request_t *r)
     }
 
     if (rc == NGX_ERROR) {
+    		/*识别http状态行出错*/
         u->process_header = ngx_http_uwsgi_process_header;
         return ngx_http_uwsgi_process_header(r);
     }
@@ -2205,6 +2207,7 @@ ngx_http_uwsgi_store(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     /* include the terminating '\0' into script */
     value[1].len++;
 
+    //初始化结构体sc
     ngx_memzero(&sc, sizeof(ngx_http_script_compile_t));
 
     sc.cf = cf;

@@ -81,6 +81,7 @@ static char *ngx_http_client_errors[] = {
 };
 
 
+/*用于解析http header*/
 ngx_http_header_t  ngx_http_headers_in[] = {
     { ngx_string("Host"), offsetof(ngx_http_headers_in_t, host),
                  ngx_http_process_host },
@@ -1079,7 +1080,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
             }
         }
 
-        //解析请求行
+        //解析http请求行，例如"GET https://www.example.com/abc HTTP/1.0"
         rc = ngx_http_parse_request_line(r, r->header_in);
 
         if (rc == NGX_OK) {
@@ -1100,7 +1101,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->http_protocol.len = r->request_end - r->http_protocol.data;
             }
 
-            //请求行解析成功，处理url
+            //请求行解析成功，处理uri
             if (ngx_http_process_request_uri(r) != NGX_OK) {
                 break;
             }
@@ -1136,6 +1137,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
                 r->headers_in.server = host;
             }
 
+            //http版本号小于1.0
             if (r->http_version < NGX_HTTP_VERSION_10) {
 
                 if (r->headers_in.server.len == 0
@@ -1150,6 +1152,7 @@ ngx_http_process_request_line(ngx_event_t *rev)
             }
 
 
+            /*初始化headers_in.headers,并解析header*/
             if (ngx_list_init(&r->headers_in.headers, r->pool, 20,
                               sizeof(ngx_table_elt_t))
                 != NGX_OK)
@@ -1326,7 +1329,7 @@ ngx_http_process_request_uri(ngx_http_request_t *r)
     return NGX_OK;
 }
 
-
+/*处理请求headers*/
 static void
 ngx_http_process_request_headers(ngx_event_t *rev)
 {
@@ -1410,6 +1413,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
         /* the host header could change the server configuration context */
         cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
 
+        /*解析http header行*/
         rc = ngx_http_parse_header_line(r, r->header_in,
                                         cscf->underscores_in_headers);
 
@@ -1438,10 +1442,12 @@ ngx_http_process_request_headers(ngx_event_t *rev)
 
             h->hash = r->header_hash;
 
+            /*构造http header key值*/
             h->key.len = r->header_name_end - r->header_name_start;
             h->key.data = r->header_name_start;
             h->key.data[h->key.len] = '\0';
 
+            /*构造http header value值*/
             h->value.len = r->header_end - r->header_start;
             h->value.data = r->header_start;
             h->value.data[h->value.len] = '\0';
@@ -1459,9 +1465,11 @@ ngx_http_process_request_headers(ngx_event_t *rev)
                 ngx_strlow(h->lowcase_key, h->key.data, h->key.len);
             }
 
+            /*利用header字段名称h->lowcase_key查找http header*/
             hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash,
                                h->lowcase_key, h->key.len);
 
+            /*确认http header定义存在，并进行内容解析,填充h*/
             if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
                 break;
             }
@@ -1473,6 +1481,7 @@ ngx_http_process_request_headers(ngx_event_t *rev)
             continue;
         }
 
+        /*所有http header 均解析完成*/
         if (rc == NGX_HTTP_PARSE_HEADER_DONE) {
 
             /* a whole header has been parsed successfully */
@@ -1801,7 +1810,7 @@ ngx_http_process_host(ngx_http_request_t *r, ngx_table_elt_t *h,
     return NGX_OK;
 }
 
-
+/*解析填充connection_type*/
 static ngx_int_t
 ngx_http_process_connection(ngx_http_request_t *r, ngx_table_elt_t *h,
     ngx_uint_t offset)

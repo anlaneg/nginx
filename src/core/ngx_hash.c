@@ -9,8 +9,9 @@
 #include <ngx_core.h>
 
 
+/*查询(name,value) hash,返回给定name对应的value*/
 void *
-ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
+ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key/*hashcode*/, u_char *name, size_t len)
 {
     ngx_uint_t       i;
     ngx_hash_elt_t  *elt;
@@ -19,12 +20,15 @@ ngx_hash_find(ngx_hash_t *hash, ngx_uint_t key, u_char *name, size_t len)
     ngx_log_error(NGX_LOG_ALERT, ngx_cycle->log, 0, "hf:\"%*s\"", len, name);
 #endif
 
+    /*确定要查找的桶*/
     elt = hash->buckets[key % hash->size];
 
     if (elt == NULL) {
+    		/*桶内无元素*/
         return NULL;
     }
 
+    /*elt->value有值，匹配name,一旦命中，返回elt->value*/
     while (elt->value) {
         if (len != (size_t) elt->len) {
             goto next;
@@ -208,7 +212,7 @@ ngx_hash_find_wc_tail(ngx_hash_wildcard_t *hwc, u_char *name, size_t len)
 
 
 void *
-ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
+ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key/*hashcode值*/, u_char *name,
     size_t len)
 {
     void  *value;
@@ -217,6 +221,7 @@ ngx_hash_find_combined(ngx_hash_combined_t *hash, ngx_uint_t key, u_char *name,
         value = ngx_hash_find(&hash->hash, key, name, len);
 
         if (value) {
+        		/*查询成功，返回value*/
             return value;
         }
     }

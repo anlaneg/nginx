@@ -402,7 +402,7 @@ ngx_http_set_predicate_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     return NGX_CONF_OK;
 }
 
-
+/*返回value字符串中$字符的数目*/
 ngx_uint_t
 ngx_http_script_variables_count(ngx_str_t *value)
 {
@@ -429,20 +429,25 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
         return NGX_ERROR;
     }
 
+    /*遍历sc->source字符串*/
     for (i = 0; i < sc->source->len; /* void */ ) {
 
         name.len = 0;
 
+        /*遇到变量符'$'*/
         if (sc->source->data[i] == '$') {
 
             if (++i == sc->source->len) {
+            		/*'$'为最后一个字节，报错*/
                 goto invalid_variable;
             }
 
             if (sc->source->data[i] >= '1' && sc->source->data[i] <= '9') {
+            	/*遇到$1,$2...$9*/
 #if (NGX_PCRE)
                 ngx_uint_t  n;
 
+                /*变量编号，例如1,2,3*/
                 n = sc->source->data[i] - '0';
 
                 if (sc->captures_mask & ((ngx_uint_t) 1 << n)) {
@@ -466,8 +471,9 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
 #endif
             }
 
+            /*解析两种格式: ${abc,$abc,通过name.data记录起始位置*/
             if (sc->source->data[i] == '{') {
-                bracket = 1;
+                bracket = 1;/*标记有花括号*/
 
                 if (++i == sc->source->len) {
                     goto invalid_variable;
@@ -476,19 +482,21 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
                 name.data = &sc->source->data[i];
 
             } else {
-                bracket = 0;
+                bracket = 0;/*标记无花括号*/
                 name.data = &sc->source->data[i];
             }
 
-            for ( /* void */ ; i < sc->source->len; i++, name.len++) {
+            for ( /* void */ ; i < sc->source->len; i++, name.len++/*指明变量名长度*/) {
                 ch = sc->source->data[i];
 
                 if (ch == '}' && bracket) {
+                		/*到达变量结尾*/
                     i++;
                     bracket = 0;
                     break;
                 }
 
+                /*校验必须为有效的变量名*/
                 if ((ch >= 'A' && ch <= 'Z')
                     || (ch >= 'a' && ch <= 'z')
                     || (ch >= '0' && ch <= '9')
@@ -497,16 +505,19 @@ ngx_http_script_compile(ngx_http_script_compile_t *sc)
                     continue;
                 }
 
+                /*确认为非有效的变量名字符，退出*/
                 break;
             }
 
             if (bracket) {
+            		/*变量花括号未闭合，报错*/
                 ngx_conf_log_error(NGX_LOG_EMERG, sc->cf, 0,
                                    "the closing bracket in \"%V\" "
                                    "variable is missing", &name);
                 return NGX_ERROR;
             }
 
+            /*变量名为空，报错*/
             if (name.len == 0) {
                 goto invalid_variable;
             }
@@ -645,6 +656,7 @@ ngx_http_script_init_arrays(ngx_http_script_compile_t *sc)
 {
     ngx_uint_t   n;
 
+    /*如sc->flushes未初始化，则初始化它*/
     if (sc->flushes && *sc->flushes == NULL) {
         n = sc->variables ? sc->variables : 1;
         *sc->flushes = ngx_array_create(sc->cf->pool, n, sizeof(ngx_uint_t));

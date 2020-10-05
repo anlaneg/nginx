@@ -348,6 +348,7 @@ failed:
 }
 
 
+/*初始化各阶段handlers*/
 static ngx_int_t
 ngx_http_init_phases(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 {
@@ -410,7 +411,7 @@ ngx_http_init_phases(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
     return NGX_OK;
 }
 
-
+/*初始化http 可输入的header*/
 static ngx_int_t
 ngx_http_init_headers_in_hash(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 {
@@ -425,6 +426,7 @@ ngx_http_init_headers_in_hash(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
         return NGX_ERROR;
     }
 
+    /*遍历定义的http in header,逐个对应的hk*/
     for (header = ngx_http_headers_in; header->name.len; header++) {
         hk = ngx_array_push(&headers_in);
         if (hk == NULL) {
@@ -436,6 +438,7 @@ ngx_http_init_headers_in_hash(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
         hk->value = header;
     }
 
+    /*利用headers_in初始化cmcf->headers_in_hash*/
     hash.hash = &cmcf->headers_in_hash;
     hash.key = ngx_hash_key_lc;
     hash.max_size = 512;
@@ -485,6 +488,7 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
     cmcf->phase_engine.handlers = ph;
     n = 0;
 
+    /*初始化各个阶段*/
     for (i = 0; i < NGX_HTTP_LOG_PHASE; i++) {
         h = cmcf->phases[i].handlers.elts;
 
@@ -549,9 +553,10 @@ ngx_http_init_phase_handlers(ngx_conf_t *cf, ngx_http_core_main_conf_t *cmcf)
 
         n += cmcf->phases[i].handlers.nelts;
 
+        /*设置各阶段checker及handler*/
         for (j = cmcf->phases[i].handlers.nelts - 1; j >= 0; j--) {
             ph->checker = checker;
-            ph->handler = h[j];
+            ph->handler = h[j];/*设置ph->handler*/
             ph->next = n;
             ph++;
         }

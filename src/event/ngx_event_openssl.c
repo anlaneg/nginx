@@ -130,6 +130,7 @@ int  ngx_ssl_connection_index;
 int  ngx_ssl_server_conf_index;
 int  ngx_ssl_session_cache_index;
 int  ngx_ssl_session_ticket_keys_index;
+int  ngx_ssl_ocsp_index;
 int  ngx_ssl_certificate_index;
 int  ngx_ssl_next_certificate_index;
 int  ngx_ssl_certificate_name_index;
@@ -208,6 +209,13 @@ ngx_ssl_init(ngx_log_t *log)
     ngx_ssl_session_ticket_keys_index = SSL_CTX_get_ex_new_index(0, NULL, NULL,
                                                                  NULL, NULL);
     if (ngx_ssl_session_ticket_keys_index == -1) {
+        ngx_ssl_error(NGX_LOG_ALERT, log, 0,
+                      "SSL_CTX_get_ex_new_index() failed");
+        return NGX_ERROR;
+    }
+
+    ngx_ssl_ocsp_index = SSL_CTX_get_ex_new_index(0, NULL, NULL, NULL, NULL);
+    if (ngx_ssl_ocsp_index == -1) {
         ngx_ssl_error(NGX_LOG_ALERT, log, 0,
                       "SSL_CTX_get_ex_new_index() failed");
         return NGX_ERROR;
@@ -912,6 +920,9 @@ ngx_int_t
 ngx_ssl_trusted_certificate(ngx_conf_t *cf, ngx_ssl_t *ssl, ngx_str_t *cert,
     ngx_int_t depth)
 {
+    SSL_CTX_set_verify(ssl->ctx, SSL_CTX_get_verify_mode(ssl->ctx),
+                       ngx_ssl_verify_callback);
+
     SSL_CTX_set_verify_depth(ssl->ctx, depth);
 
     if (cert->len == 0) {
@@ -1594,12 +1605,17 @@ ngx_ssl_handshake(ngx_connection_t *c)
 {
     int        n, sslerr;
     ngx_err_t  err;
+    ngx_int_t  rc;
 
 #ifdef SSL_READ_EARLY_DATA_SUCCESS
     if (c->ssl->try_early_data) {
         return ngx_ssl_try_early_data(c);
     }
 #endif
+
+    if (c->ssl->in_ocsp) {
+        return ngx_ssl_ocsp_validate(c);
+    }
 
     ngx_ssl_clear_error(c->log);
 
@@ -1621,8 +1637,6 @@ ngx_ssl_handshake(ngx_connection_t *c)
         ngx_ssl_handshake_log(c);
 #endif
 
-        c->ssl->handshaked = 1;
-
         c->recv = ngx_ssl_recv;
         c->send = ngx_ssl_write;
         c->recv_chain = ngx_ssl_recv_chain;
@@ -1640,6 +1654,20 @@ ngx_ssl_handshake(ngx_connection_t *c)
 #endif
 #endif
 #endif
+
+        rc = ngx_ssl_ocsp_validate(c);
+
+        if (rc == NGX_ERROR) {
+            return NGX_ERROR;
+        }
+
+        if (rc == NGX_AGAIN) {
+            c->read->handler = ngx_ssl_handshake_handler;
+            c->write->handler = ngx_ssl_handshake_handler;
+            return NGX_AGAIN;
+        }
+
+        c->ssl->handshaked = 1;
 
         return NGX_OK;
     }
@@ -1710,6 +1738,7 @@ ngx_ssl_try_early_data(ngx_connection_t *c)
     u_char     buf;
     size_t     readbytes;
     ngx_err_t  err;
+    ngx_int_t  rc;
 
     ngx_ssl_clear_error(c->log);
 
@@ -1744,13 +1773,26 @@ ngx_ssl_try_early_data(ngx_connection_t *c)
         c->ssl->early_buf = buf;
         c->ssl->early_preread = 1;
 
-        c->ssl->handshaked = 1;
         c->ssl->in_early = 1;
 
         c->recv = ngx_ssl_recv;
         c->send = ngx_ssl_write;
         c->recv_chain = ngx_ssl_recv_chain;
         c->send_chain = ngx_ssl_send_chain;
+
+        rc = ngx_ssl_ocsp_validate(c);
+
+        if (rc == NGX_ERROR) {
+            return NGX_ERROR;
+        }
+
+        if (rc == NGX_AGAIN) {
+            c->read->handler = ngx_ssl_handshake_handler;
+            c->write->handler = ngx_ssl_handshake_handler;
+            return NGX_AGAIN;
+        }
+
+        c->ssl->handshaked = 1;
 
         return NGX_OK;
     }
@@ -2531,6 +2573,18 @@ ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size)
 
     sslerr = SSL_get_error(c->ssl->connection, n);
 
+    if (sslerr == SSL_ERROR_ZERO_RETURN) {
+
+        /*
+         * OpenSSL 1.1.1 fails to return SSL_ERROR_SYSCALL if an error
+         * happens during SSL_write() after close_notify alert from the
+         * peer, and returns SSL_ERROR_ZERO_RETURN instead,
+         * https://git.openssl.org/?p=openssl.git;a=commitdiff;h=8051ab2
+         */
+
+        sslerr = SSL_ERROR_SYSCALL;
+    }
+
     err = (sslerr == SSL_ERROR_SYSCALL) ? ngx_errno : 0;
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "SSL_get_error: %d", sslerr);
@@ -2732,8 +2786,11 @@ ngx_ssl_free_buffer(ngx_connection_t *c)
 ngx_int_t
 ngx_ssl_shutdown(ngx_connection_t *c)
 {
-    int        n, sslerr, mode;
-    ngx_err_t  err;
+    int         n, sslerr, mode;
+    ngx_err_t   err;
+    ngx_uint_t  tries;
+
+    ngx_ssl_ocsp_cleanup(c);
 
     if (SSL_in_init(c->ssl->connection)) {
         /*
@@ -2748,7 +2805,7 @@ ngx_ssl_shutdown(ngx_connection_t *c)
         return NGX_OK;
     }
 
-    if (c->timedout) {
+    if (c->timedout || c->error || c->buffered) {
         mode = SSL_RECEIVED_SHUTDOWN|SSL_SENT_SHUTDOWN;
         SSL_set_quiet_shutdown(c->ssl->connection, 1);
 
@@ -2772,55 +2829,78 @@ ngx_ssl_shutdown(ngx_connection_t *c)
 
     ngx_ssl_clear_error(c->log);
 
-    n = SSL_shutdown(c->ssl->connection);
+    tries = 2;
 
-    ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "SSL_shutdown: %d", n);
+    for ( ;; ) {
 
-    sslerr = 0;
+        /*
+         * For bidirectional shutdown, SSL_shutdown() needs to be called
+         * twice: first call sends the "close notify" alert and returns 0,
+         * second call waits for the peer's "close notify" alert.
+         */
 
-    /* before 0.9.8m SSL_shutdown() returned 0 instead of -1 on errors */
+        n = SSL_shutdown(c->ssl->connection);
 
-    if (n != 1 && ERR_peek_error()) {
+        ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "SSL_shutdown: %d", n);
+
+        if (n == 1) {
+            SSL_free(c->ssl->connection);
+            c->ssl = NULL;
+
+            return NGX_OK;
+        }
+
+        if (n == 0 && tries-- > 1) {
+            continue;
+        }
+
+        /* before 0.9.8m SSL_shutdown() returned 0 instead of -1 on errors */
+
         sslerr = SSL_get_error(c->ssl->connection, n);
 
         ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0,
                        "SSL_get_error: %d", sslerr);
-    }
 
-    if (n == 1 || sslerr == 0 || sslerr == SSL_ERROR_ZERO_RETURN) {
+        if (sslerr == SSL_ERROR_WANT_READ || sslerr == SSL_ERROR_WANT_WRITE) {
+            c->read->handler = ngx_ssl_shutdown_handler;
+            c->write->handler = ngx_ssl_shutdown_handler;
+
+            if (sslerr == SSL_ERROR_WANT_READ) {
+                c->read->ready = 0;
+
+            } else {
+                c->write->ready = 0;
+            }
+
+            if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
+                return NGX_ERROR;
+            }
+
+            if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
+                return NGX_ERROR;
+            }
+
+            ngx_add_timer(c->read, 3000);
+
+            return NGX_AGAIN;
+        }
+
+        if (sslerr == SSL_ERROR_ZERO_RETURN || ERR_peek_error() == 0) {
+            SSL_free(c->ssl->connection);
+            c->ssl = NULL;
+
+            return NGX_OK;
+        }
+
+        err = (sslerr == SSL_ERROR_SYSCALL) ? ngx_errno : 0;
+
+        ngx_ssl_connection_error(c, sslerr, err, "SSL_shutdown() failed");
+
         SSL_free(c->ssl->connection);
         c->ssl = NULL;
 
-        return NGX_OK;
+        return NGX_ERROR;
     }
-
-    if (sslerr == SSL_ERROR_WANT_READ || sslerr == SSL_ERROR_WANT_WRITE) {
-        c->read->handler = ngx_ssl_shutdown_handler;
-        c->write->handler = ngx_ssl_shutdown_handler;
-
-        if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
-            return NGX_ERROR;
-        }
-
-        if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
-            return NGX_ERROR;
-        }
-
-        if (sslerr == SSL_ERROR_WANT_READ) {
-            ngx_add_timer(c->read, 30000);
-        }
-
-        return NGX_AGAIN;
-    }
-
-    err = (sslerr == SSL_ERROR_SYSCALL) ? ngx_errno : 0;
-
-    ngx_ssl_connection_error(c, sslerr, err, "SSL_shutdown() failed");
-
-    SSL_free(c->ssl->connection);
-    c->ssl = NULL;
-
-    return NGX_ERROR;
 }
 
 
@@ -4894,11 +4974,14 @@ ngx_ssl_get_client_verify(ngx_connection_t *c, ngx_pool_t *pool, ngx_str_t *s)
     rc = SSL_get_verify_result(c->ssl->connection);
 
     if (rc == X509_V_OK) {
-        ngx_str_set(s, "SUCCESS");
-        return NGX_OK;
-    }
+        if (ngx_ssl_ocsp_get_status(c, &str) == NGX_OK) {
+            ngx_str_set(s, "SUCCESS");
+            return NGX_OK;
+        }
 
-    str = X509_verify_cert_error_string(rc);
+    } else {
+        str = X509_verify_cert_error_string(rc);
+    }
 
     s->data = ngx_pnalloc(pool, sizeof("FAILED:") - 1 + ngx_strlen(str));
     if (s->data == NULL) {

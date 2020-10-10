@@ -549,6 +549,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
                     == NGX_OK)
                 {
                     nls[n].fd = ls[i].fd;
+                    nls[n].inherited = ls[i].inherited;
                     nls[n].previous = &ls[i];
                     ls[i].remain = 1;
 
@@ -1038,6 +1039,7 @@ ngx_int_t
 ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
 {
     size_t      len;
+    ngx_int_t   rc;
     ngx_uint_t  create;
     ngx_file_t  file;
     u_char      pid[NGX_INT64_LEN + 2];
@@ -1063,12 +1065,14 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
         return NGX_ERROR;
     }
 
+    rc = NGX_OK;
+
     //向pid文件中写入pid编号
     if (!ngx_test_config) {
         len = ngx_snprintf(pid, NGX_INT64_LEN + 2, "%P%N", ngx_pid) - pid;
 
         if (ngx_write_file(&file, pid, len, 0) == NGX_ERROR) {
-            return NGX_ERROR;
+            rc = NGX_ERROR;
         }
     }
 
@@ -1077,7 +1081,7 @@ ngx_create_pidfile(ngx_str_t *name, ngx_log_t *log)
                       ngx_close_file_n " \"%s\" failed", file.name.data);
     }
 
-    return NGX_OK;
+    return rc;
 }
 
 

@@ -1077,7 +1077,8 @@ ngx_close_listening_sockets(ngx_cycle_t *cycle)
 
         if (ls[i].sockaddr->sa_family == AF_UNIX
             && ngx_process <= NGX_PROCESS_MASTER
-            && ngx_new_binary == 0)
+            && ngx_new_binary == 0
+            && (!ls[i].inherited || ngx_getppid() != ngx_parent))
         {
             u_char *name = ls[i].addr_text.data + sizeof("unix:") - 1;
 
@@ -1113,14 +1114,10 @@ ngx_get_connection(ngx_socket_t s, ngx_log_t *log)
         return NULL;
     }
 
+    ngx_drain_connections((ngx_cycle_t *) ngx_cycle);
+
     //取一个空闲的connect
     c = ngx_cycle->free_connections;
-
-    if (c == NULL) {
-    	//无空闲的connect,则先尝试释放，再复用
-        ngx_drain_connections((ngx_cycle_t *) ngx_cycle);
-        c = ngx_cycle->free_connections;
-    }
 
     //连接完全被用完了
     if (c == NULL) {
@@ -1311,6 +1308,21 @@ ngx_drain_connections(ngx_cycle_t *cycle)
     ngx_uint_t         i, n;
     ngx_queue_t       *q;
     ngx_connection_t  *c;
+
+    if (cycle->free_connection_n > cycle->connection_n / 16
+        || cycle->reusable_connections_n == 0)
+    {
+        return;
+    }
+
+    if (cycle->connections_reuse_time != ngx_time()) {
+        cycle->connections_reuse_time = ngx_time();
+
+        ngx_log_error(NGX_LOG_WARN, cycle->log, 0,
+                      "%ui worker_connections are not enough, "
+                      "reusing connections",
+                      cycle->connection_n);
+    }
 
     n = ngx_max(ngx_min(32, cycle->reusable_connections_n / 8), 1);
 

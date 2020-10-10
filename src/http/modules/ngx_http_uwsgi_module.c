@@ -581,6 +581,7 @@ static ngx_http_module_t ngx_http_uwsgi_module_ctx = {
 };
 
 
+/*uwsgi模块*/
 ngx_module_t ngx_http_uwsgi_module = {
     NGX_MODULE_V1,
     &ngx_http_uwsgi_module_ctx,            /* module context */
@@ -1239,6 +1240,7 @@ ngx_http_uwsgi_process_header(ngx_http_request_t *r)
 
     for ( ;; ) {
 
+    		/*解析http头部*/
         rc = ngx_http_parse_header_line(r, &r->upstream->buffer, 1);
 
         if (rc == NGX_OK) {

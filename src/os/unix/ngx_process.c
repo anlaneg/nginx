@@ -85,7 +85,7 @@ ngx_signal_t  signals[] = {
 
 
 ngx_pid_t
-ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
+ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc/*子进程入口函数*/, void *data,
     char *name, ngx_int_t respawn)
 {
     u_long     on;
@@ -118,7 +118,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
 
         /* Solaris 9 still has no AF_LOCAL */
 
-    	//创建一对pair　socket
+    		//创建一对unix socket
         if (socketpair(AF_UNIX, SOCK_STREAM, 0, ngx_processes[s].channel) == -1)
         {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
@@ -126,6 +126,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
             return NGX_INVALID_PID;
         }
 
+        //显示创建的pipe两端
         ngx_log_debug2(NGX_LOG_DEBUG_CORE, cycle->log, 0,
                        "channel %d:%d",
                        ngx_processes[s].channel[0],
@@ -164,7 +165,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
             return NGX_INVALID_PID;
         }
 
-        //clone时关闭
+        //0设置为clone时关闭
         if (fcntl(ngx_processes[s].channel[0], F_SETFD, FD_CLOEXEC) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "fcntl(FD_CLOEXEC) failed while spawning \"%s\"",
@@ -173,6 +174,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
             return NGX_INVALID_PID;
         }
 
+        //1设置为clone时关闭
         if (fcntl(ngx_processes[s].channel[1], F_SETFD, FD_CLOEXEC) == -1) {
             ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                           "fcntl(FD_CLOEXEC) failed while spawning \"%s\"",
@@ -184,6 +186,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
         ngx_channel = ngx_processes[s].channel[1];
 
     } else {
+    		//此情况下不使能channel
         ngx_processes[s].channel[0] = -1;
         ngx_processes[s].channel[1] = -1;
     }
@@ -197,6 +200,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
     switch (pid) {
 
     case -1:
+    		/*fork进程失败*/
         ngx_log_error(NGX_LOG_ALERT, cycle->log, ngx_errno,
                       "fork() failed while spawning \"%s\"", name);
         ngx_close_channel(ngx_processes[s].channel, cycle->log);
@@ -261,6 +265,7 @@ ngx_spawn_process(ngx_cycle_t *cycle, ngx_spawn_proc_pt proc, void *data,
         break;
     }
 
+    /*更新ngx_last_process*/
     if (s == ngx_last_process) {
         ngx_last_process++;
     }

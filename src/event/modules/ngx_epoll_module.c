@@ -577,7 +577,7 @@ ngx_epoll_done(ngx_cycle_t *cycle)
     nevents = 0;
 }
 
-//事件添加
+//epoll事件添加
 static ngx_int_t
 ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 {
@@ -644,7 +644,7 @@ ngx_epoll_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
     return NGX_OK;
 }
 
-
+//epoll事件移除
 static ngx_int_t
 ngx_epoll_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 {
@@ -1043,7 +1043,7 @@ ngx_epoll_eventfd_handler(ngx_event_t *ev)
 
 #endif
 
-
+/*创建epoll对应的conf结构*/
 static void *
 ngx_epoll_create_conf(ngx_cycle_t *cycle)
 {
@@ -1060,7 +1060,7 @@ ngx_epoll_create_conf(ngx_cycle_t *cycle)
     return epcf;
 }
 
-
+/*初始化epoll config*/
 static char *
 ngx_epoll_init_conf(ngx_cycle_t *cycle, void *conf)
 {

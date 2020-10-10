@@ -52,7 +52,7 @@ ngx_os_specific_init(ngx_log_t *log)
     return NGX_OK;
 }
 
-
+/*显示操作系统及kernel版本*/
 void
 ngx_os_specific_status(ngx_log_t *log)
 {

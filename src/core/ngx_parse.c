@@ -22,6 +22,7 @@ ngx_parse_size(ngx_str_t *line)
         return NGX_ERROR;
     }
 
+    /*获取配置单位*/
     unit = line->data[len - 1];
 
     switch (unit) {
@@ -44,11 +45,13 @@ ngx_parse_size(ngx_str_t *line)
         scale = 1;
     }
 
+    /*将line配置转换为size*/
     size = ngx_atosz(line->data, len);
-    if (size == NGX_ERROR || size > max) {
+    if (size == NGX_ERROR || size > max/*配置不得大于max*/) {
         return NGX_ERROR;
     }
 
+    /*计算后，返回配置值*/
     size *= scale;
 
     return size;

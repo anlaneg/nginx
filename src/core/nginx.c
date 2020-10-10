@@ -185,7 +185,7 @@ ngx_module_t  ngx_core_module = {
 static ngx_uint_t   ngx_show_help;
 //标记需要显示版本
 static ngx_uint_t   ngx_show_version;
-//标记需要显示build配置
+//标记需要显示配置
 static ngx_uint_t   ngx_show_configure;
 //指明路径前缀
 static u_char      *ngx_prefix;
@@ -200,6 +200,7 @@ static char        *ngx_signal;
 static char **ngx_os_environ;
 
 
+/*nginx入口*/
 int ngx_cdecl
 main(int argc, char *const *argv)
 {
@@ -302,7 +303,7 @@ main(int argc, char *const *argv)
         return 1;
     }
 
-    //模块化初始化前准备
+    //模块初始化前准备
     if (ngx_preinit_modules() != NGX_OK) {
         return 1;
     }
@@ -325,19 +326,21 @@ main(int argc, char *const *argv)
                            cycle->conf_file.data);
         }
 
-        //配置dump选项处理
+        //配置了dump选项，此处dump配置
         if (ngx_dump_config) {
             cd = cycle->config_dump.elts;
 
             for (i = 0; i < cycle->config_dump.nelts; i++) {
 
                 ngx_write_stdout("# configuration file ");
+                //输出配置名称
                 (void) ngx_write_fd(ngx_stdout, cd[i].name.data,
                                     cd[i].name.len);
                 ngx_write_stdout(":" NGX_LINEFEED);
 
                 b = cd[i].buffer;
 
+                //输出配置值
                 (void) ngx_write_fd(ngx_stdout, b->pos, b->last - b->pos);
                 ngx_write_stdout(NGX_LINEFEED);
             }

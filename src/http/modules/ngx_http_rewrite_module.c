@@ -558,6 +558,7 @@ ngx_http_rewrite_if(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     for (i = 0; cf->cycle->modules[i]; i++) {
+    		/*只考虑http module*/
         if (cf->cycle->modules[i]->type != NGX_HTTP_MODULE) {
             continue;
         }

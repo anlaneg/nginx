@@ -70,6 +70,7 @@
 #define NGX_CONF_BLOCK_DONE  2
 #define NGX_CONF_FILE_DONE   3
 
+/*nginx核心模块*/
 #define NGX_CORE_MODULE      0x45524F43  /* "CORE" */
 #define NGX_CONF_MODULE      0x464E4F43  /* "CONF" */
 
@@ -85,6 +86,7 @@ struct ngx_command_s {
     char               *(*set)(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
     //用于辅助取配置结构体（来源于cf->ctx数组中的位置）
     ngx_uint_t            conf;
+    //被配置数据到conf的偏移量
     ngx_uint_t            offset;
     void                 *post;
 };

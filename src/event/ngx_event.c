@@ -41,7 +41,7 @@ sig_atomic_t          ngx_event_timer_alarm;
 static ngx_uint_t     ngx_event_max_module;
 
 ngx_uint_t            ngx_event_flags;
-//记录event的action函数集
+//记录系统使能的event的action函数集
 ngx_event_actions_t   ngx_event_actions;
 
 
@@ -240,6 +240,7 @@ ngx_process_events_and_timers(ngx_cycle_t *cycle)
         }
     }
 
+    /*将ngx_posted_next_events队列元素移动至ngx_posted_events队列*/
     if (!ngx_queue_empty(&ngx_posted_next_events)) {
         ngx_event_move_posted_next(cycle);
         timer = 0;
@@ -652,6 +653,7 @@ ngx_event_process_init(ngx_cycle_t *cycle)
 
 #endif
 
+    /*初始化事件队列*/
     ngx_queue_init(&ngx_posted_accept_events);
     ngx_queue_init(&ngx_posted_next_events);
     ngx_queue_init(&ngx_posted_events);
@@ -821,7 +823,8 @@ ngx_event_process_init(ngx_cycle_t *cycle)
         rev = c->read;
 
         rev->log = c->log;
-        rev->accept = 1;//被监听socket，需要存入accept队列
+        //当前为被监听socket，需要存入accept队列
+        rev->accept = 1;
 
 #if (NGX_HAVE_DEFERRED_ACCEPT)
         rev->deferred_accept = ls[i].deferred_accept;
@@ -1007,6 +1010,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         m = cf->cycle->modules[i]->ctx;
 
+        /*创建event模块对应的config数据*/
         if (m->create_conf) {
             (*ctx)[cf->cycle->modules[i]->ctx_index] =
                                                      m->create_conf(cf->cycle);
@@ -1030,7 +1034,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         return rv;
     }
 
-    //初始化event配置
+    //初始化所有event配置
     for (i = 0; cf->cycle->modules[i]; i++) {
         if (cf->cycle->modules[i]->type != NGX_EVENT_MODULE) {
             continue;
@@ -1038,6 +1042,7 @@ ngx_events_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
         m = cf->cycle->modules[i]->ctx;
 
+        /*初始化event模块对应的config数据*/
         if (m->init_conf) {
             rv = m->init_conf(cf->cycle,
                               (*ctx)[cf->cycle->modules[i]->ctx_index]);

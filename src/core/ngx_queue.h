@@ -47,23 +47,23 @@ struct ngx_queue_s {
     (h)->prev = x
 
 
-//自队列取元素
+//自队列取首个元素
 #define ngx_queue_head(h)                                                     \
     (h)->next
 
-
+//自队列取last元素
 #define ngx_queue_last(h)                                                     \
     (h)->prev
 
-
+/*返回h本身*/
 #define ngx_queue_sentinel(h)                                                 \
     (h)
 
-
+/*取下一个元素*/
 #define ngx_queue_next(q)                                                     \
     (q)->next
 
-
+/*取前一个元素*/
 #define ngx_queue_prev(q)                                                     \
     (q)->prev
 
@@ -101,7 +101,7 @@ struct ngx_queue_s {
     (h)->prev = (n)->prev;                                                    \
     (h)->prev->next = h;
 
-
+/*由q获得type类型的queue data*/
 #define ngx_queue_data(q, type, link)                                         \
     (type *) ((u_char *) q - offsetof(type, link))
 

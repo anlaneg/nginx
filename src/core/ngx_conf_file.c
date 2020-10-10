@@ -118,16 +118,19 @@ ngx_conf_add_dump(ngx_conf_t *cf, ngx_str_t *filename)
         return NGX_OK;
     }
 
+    /*复制文件名*/
     p = ngx_pstrdup(cf->cycle->pool, filename);
     if (p == NULL) {
         return NGX_ERROR;
     }
 
+    /*添充config_dump*/
     cd = ngx_array_push(&cf->cycle->config_dump);
     if (cd == NULL) {
         return NGX_ERROR;
     }
 
+    /*申请与filename文件相同大小的dump*/
     size = ngx_file_size(&cf->conf_file->file.info);
 
     buf = ngx_create_temp_buf(cf->cycle->pool, (size_t) size);
@@ -1286,6 +1289,7 @@ ngx_conf_set_size_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     ngx_conf_post_t  *post;
 
 
+    /*获取配置位置*/
     sp = (size_t *) (p + cmd->offset);
     if (*sp != NGX_CONF_UNSET_SIZE) {
         return "is duplicate";
@@ -1293,6 +1297,7 @@ ngx_conf_set_size_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     value = cf->args->elts;
 
+    /*解析并设置配置值到sp*/
     *sp = ngx_parse_size(&value[1]);
     if (*sp == (size_t) NGX_ERROR) {
         return "invalid value";

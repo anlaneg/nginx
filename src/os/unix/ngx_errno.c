@@ -64,6 +64,7 @@ ngx_strerror_init(void)
     }
 
     for (err = 0; err < NGX_SYS_NERR; err++) {
+    		//取相应的错误码消息
         msg = strerror(err);
         len = ngx_strlen(msg);
 

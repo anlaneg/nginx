@@ -31,16 +31,19 @@ static void ngx_cache_loader_process_handler(ngx_event_t *ev);
 ngx_uint_t    ngx_process;
 ngx_uint_t    ngx_worker;
 ngx_pid_t     ngx_pid;//当前进程id
-ngx_pid_t     ngx_parent;//父进程id
+ngx_pid_t     ngx_parent;//当前进程父进程id
 
 sig_atomic_t  ngx_reap;
 sig_atomic_t  ngx_sigio;
 sig_atomic_t  ngx_sigalrm;
-sig_atomic_t  ngx_terminate;//nginx需要中止
-sig_atomic_t  ngx_quit;//nginx需要退出
+//nginx需要中止
+sig_atomic_t  ngx_terminate;
+//nginx需要退出
+sig_atomic_t  ngx_quit;
 sig_atomic_t  ngx_debug_quit;
 ngx_uint_t    ngx_exiting;
-sig_atomic_t  ngx_reconfigure;//重新配置nginx
+//重新配置nginx
+sig_atomic_t  ngx_reconfigure;
 sig_atomic_t  ngx_reopen;
 
 sig_atomic_t  ngx_change_binary;
@@ -70,6 +73,7 @@ static ngx_log_t        ngx_exit_log;
 static ngx_open_file_t  ngx_exit_log_file;
 
 
+/*nginx多进程处理*/
 void
 ngx_master_process_cycle(ngx_cycle_t *cycle)
 {
@@ -85,6 +89,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_listening_t   *ls;
     ngx_core_conf_t   *ccf;
 
+    //清空set,并向set中添加以下信号
     sigemptyset(&set);
     sigaddset(&set, SIGCHLD);
     sigaddset(&set, SIGALRM);
@@ -180,6 +185,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             live = ngx_reap_children(cycle);
         }
 
+        /*nginx进程需要退出*/
         if (!live && (ngx_terminate || ngx_quit)) {
             ngx_master_process_exit(cycle);
         }
@@ -289,7 +295,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     }
 }
 
-
+/*nginx单进程处理*/
 void
 ngx_single_process_cycle(ngx_cycle_t *cycle)
 {
@@ -354,9 +360,9 @@ ngx_single_process_cycle(ngx_cycle_t *cycle)
 }
 
 
-//启动多个工作进程
+//启动n个工作进程
 static void
-ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
+ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n/*要启动的进程数*/, ngx_int_t type/*进程类型*/)
 {
     ngx_int_t      i;
     ngx_channel_t  ch;
@@ -741,7 +747,7 @@ ngx_master_process_exit(ngx_cycle_t *cycle)
 }
 
 
-//生的子进程自此处进入
+//work进程工作函数
 static void
 ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 {
@@ -765,7 +771,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
 
         ngx_log_debug0(NGX_LOG_DEBUG_EVENT, cycle->log, 0, "worker cycle");
 
-        //事件及timer处理
+        //事件及timer处理（主要工作）
         ngx_process_events_and_timers(cycle);
 
         //检查进程是否需要terminate
@@ -774,6 +780,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
             ngx_worker_process_exit(cycle);
         }
 
+        /*检查进程是否需要退出*/
         if (ngx_quit) {
             ngx_quit = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0,
@@ -788,6 +795,7 @@ ngx_worker_process_cycle(ngx_cycle_t *cycle, void *data)
             }
         }
 
+        /*是否需要reopen文件*/
         if (ngx_reopen) {
             ngx_reopen = 0;
             ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");

@@ -211,7 +211,7 @@
     NGX_MODULE_SIGNATURE_30 NGX_MODULE_SIGNATURE_31 NGX_MODULE_SIGNATURE_32   \
     NGX_MODULE_SIGNATURE_33 NGX_MODULE_SIGNATURE_34
 
-
+/*v1版本module初始化*/
 #define NGX_MODULE_V1                                                         \
     NGX_MODULE_UNSET_INDEX, NGX_MODULE_UNSET_INDEX,                           \
     NULL, 0, 0, nginx_version, NGX_MODULE_SIGNATURE
@@ -220,28 +220,33 @@
 
 
 struct ngx_module_s {
-    ngx_uint_t            ctx_index;//context编号（例如所有event有一组编号）
+	//context编号（例如所有event有一组编号）
+	//-1时表示未给值
+    ngx_uint_t            ctx_index;
     //module唯一编号
     ngx_uint_t            index;
 
     //module名称
     char                 *name;
 
+    //v1版本时，这两个值为0
     ngx_uint_t            spare0;
     ngx_uint_t            spare1;
 
+    //nginx版本号
     ngx_uint_t            version;
     const char           *signature;
 
     //module的上下文
     void                 *ctx;
-    //模块对应的commands
+    //模块对应的commands，用于处理配置文件
     ngx_command_t        *commands;
     //模块类型
     ngx_uint_t            type;
 
     ngx_int_t           (*init_master)(ngx_log_t *log);
 
+    //完成此module的初始化
     ngx_int_t           (*init_module)(ngx_cycle_t *cycle);
 
     //进程初始化时调用
@@ -265,8 +270,11 @@ struct ngx_module_s {
 
 
 typedef struct {
+	//模块名称
     ngx_str_t             name;
-    void               *(*create_conf)(ngx_cycle_t *cycle);//申请并初始化配置结构体
+    //申请配置结构体
+    void               *(*create_conf)(ngx_cycle_t *cycle);
+    //初始化配置结构体
     char               *(*init_conf)(ngx_cycle_t *cycle, void *conf);
 } ngx_core_module_t;
 

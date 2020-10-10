@@ -55,6 +55,7 @@ static ngx_event_module_t  ngx_select_module_ctx = {
 
 };
 
+/*select模块*/
 ngx_module_t  ngx_select_module = {
     NGX_MODULE_V1,
     &ngx_select_module_ctx,                /* module context */
@@ -121,7 +122,7 @@ ngx_select_done(ngx_cycle_t *cycle)
     event_index = NULL;
 }
 
-
+/*向select模块添加一个event*/
 static ngx_int_t
 ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
 {
@@ -156,6 +157,7 @@ ngx_select_add_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
         FD_SET(c->fd, &master_write_fd_set);
     }
 
+    //更新max fd
     if (max_fd != -1 && max_fd < c->fd) {
         max_fd = c->fd;
     }
@@ -196,6 +198,7 @@ ngx_select_del_event(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags)
         FD_CLR(c->fd, &master_write_fd_set);
     }
 
+    //更新max_fd
     if (max_fd == c->fd) {
         max_fd = -1;
     }
@@ -225,6 +228,7 @@ ngx_select_process_events(ngx_cycle_t *cycle, ngx_msec_t timer,
     struct timeval     tv, *tp;
     ngx_connection_t  *c;
 
+    /*max_fd为-1,遍历所有events,确认max_fd*/
     if (max_fd == -1) {
         for (i = 0; i < nevents; i++) {
             c = event_index[i]->data;
@@ -426,6 +430,7 @@ ngx_select_init_conf(ngx_cycle_t *cycle, void *conf)
     /* disable warning: the default FD_SETSIZE is 1024U in FreeBSD 5.x */
 
     if (cycle->connection_n > FD_SETSIZE) {
+    		/*连接数超过1024，则告警*/
         ngx_log_error(NGX_LOG_EMERG, cycle->log, 0,
                       "the maximum number of files "
                       "supported by select() is %ud", FD_SETSIZE);

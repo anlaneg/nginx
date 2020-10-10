@@ -32,7 +32,8 @@ struct ngx_event_s {
 
     unsigned         write:1;
 
-    unsigned         accept:1;//事件是否放在accept队列中等待处理
+    //事件是否放在accept队列中等待处理，否则会被存入到ngx_posted_events
+    unsigned         accept:1;
 
     /* used to detect the stale events in kqueue and epoll */
     unsigned         instance:1;
@@ -173,7 +174,9 @@ typedef struct {
     //event删除
     ngx_int_t  (*del)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
 
+    //event使能
     ngx_int_t  (*enable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
+    //event禁用
     ngx_int_t  (*disable)(ngx_event_t *ev, ngx_int_t event, ngx_uint_t flags);
 
     ngx_int_t  (*add_conn)(ngx_connection_t *c);
@@ -379,6 +382,7 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 
 #else /* select */
 
+/*读／写事件*/
 #define NGX_READ_EVENT     0
 #define NGX_WRITE_EVENT    1
 
@@ -408,15 +412,16 @@ extern ngx_uint_t            ngx_use_epoll_rdhup;
 #define ngx_process_events   ngx_event_actions.process_events
 #define ngx_done_events      ngx_event_actions.done
 
-//event添加函数
+//全局event添加函数
 #define ngx_add_event        ngx_event_actions.add
-//event删除函数
+//全局event删除函数
 #define ngx_del_event        ngx_event_actions.del
-//连接对应的读写等事件添加函数
+//全局连接对应的读写等事件添加函数
 #define ngx_add_conn         ngx_event_actions.add_conn
-//连接对应的读写等事件删除函数
+//全局连接对应的读写等事件删除函数
 #define ngx_del_conn         ngx_event_actions.del_conn
 
+//全局事件通知函数
 #define ngx_notify           ngx_event_actions.notify
 
 //timer事件的添加
@@ -436,7 +441,7 @@ extern ngx_os_io_t  ngx_io;
 #define ngx_udp_send         ngx_io.udp_send
 #define ngx_udp_send_chain   ngx_io.udp_send_chain
 
-
+/*event模块*/
 #define NGX_EVENT_MODULE      0x544E5645  /* "EVNT" */
 #define NGX_EVENT_CONF        0x02000000
 
@@ -459,9 +464,12 @@ typedef struct {
 
 
 typedef struct {
+	/*event模块名称*/
     ngx_str_t              *name;
 
+    /*创建event模块配置结构体*/
     void                 *(*create_conf)(ngx_cycle_t *cycle);
+    /*初始化event模块配置结构体*/
     char                 *(*init_conf)(ngx_cycle_t *cycle, void *conf);
 
     ngx_event_actions_t     actions;

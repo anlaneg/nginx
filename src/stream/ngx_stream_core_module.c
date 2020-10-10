@@ -518,6 +518,7 @@ ngx_stream_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     }
 
     for (m = 0; cf->cycle->modules[m]; m++) {
+    		/*只处理stream模块*/
         if (cf->cycle->modules[m]->type != NGX_STREAM_MODULE) {
             continue;
         }

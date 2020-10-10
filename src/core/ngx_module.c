@@ -29,7 +29,7 @@ ngx_preinit_modules(void)
 {
     ngx_uint_t  i;
 
-    /*填充各module对应的index及module名称*/
+    /*为各module分配对应的index，并填充各module名称*/
     for (i = 0; ngx_modules[i]; i++) {
         ngx_modules[i]->index = i;
         ngx_modules[i]->name = ngx_module_names[i];
@@ -74,6 +74,7 @@ ngx_init_modules(ngx_cycle_t *cycle)
 {
     ngx_uint_t  i;
 
+    //触发所有module的init回调
     for (i = 0; cycle->modules[i]; i++) {
         if (cycle->modules[i]->init_module) {
             if (cycle->modules[i]->init_module(cycle) != NGX_OK) {

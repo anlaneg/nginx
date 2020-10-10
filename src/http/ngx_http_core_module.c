@@ -2749,6 +2749,7 @@ ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
     }
 
     for (i = 0; cf->cycle->modules[i]; i++) {
+    		/*只考虑http 模块*/
         if (cf->cycle->modules[i]->type != NGX_HTTP_MODULE) {
             continue;
         }
